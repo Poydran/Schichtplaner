@@ -1,70 +1,73 @@
 # Schichtplaner
 
-🇩🇪 Dienstplan- und Schichtplanungssoftware für kleine Einrichtungen, Restaurants und ähnliche Betriebe.
+Dienstplan- und Schichtplanungssoftware für kleine Einrichtungen, Restaurants und ähnliche Betriebe.
 
-A Windows desktop application for creating, managing and exporting employee shift schedules.
+Eine Windows-Desktopanwendung zum Erstellen, Verwalten und Exportieren von Dienstplänen.
 
-Designed for supervisors, managers and coordinators who create monthly schedules and distribute them to employees as PDF or CSV exports.
+Entwickelt für Personen, die Dienstpläne erstellen und diese anschließend als PDF oder CSV an Mitarbeitende und die Verwaltung weitergeben.
 
-## Typical Workflow
+## Typischer Ablauf
 
-1. Add locations and positions
-2. Create and maintain employees
-3. Assign shifts and absences
-4. Review staffing coverage and working hours
-5. Export schedules as PDF or CSV
-6. Distribute schedules to employees and management
+1. Standorte und Positionen anlegen
+2. Mitarbeitende erstellen und verwalten
+3. Schichten und Abwesenheiten eintragen
+4. Personalbesetzung und Arbeitszeiten überprüfen
+5. Dienstpläne als PDF oder CSV exportieren
+6. Dienstpläne an Mitarbeitende und Verwaltung verteilen
 
-## Features
+## Funktionen
 
-- Monthly shift planning
-- Employee management
-- Absence management
-- PDF export per Employee
-- PDF export per Location
-- CSV export
-- Automatic break time calculation according to German labor law (optional)
-- Shift overview and statistics
-- Custom locations and positions
+- Monatliche Dienstplanung
+- Mitarbeitendenverwaltung
+- Abwesenheitsverwaltung
+- PDF-Export pro Mitarbeitendem
+- PDF-Export pro Standort
+- CSV-Export
+- Optionale automatische Pausenberechnung nach deutschem Arbeitszeitgesetz
+- Schichtübersicht und Statistiken
+- Frei definierbare Standorte und Positionen
+- Feiertage nach Bundesland 
 
 ## Screenshots
 
+#Hauptfenster
+![Hauptfenster](Screenshots/MainWindow.png)
 
 
 ## Download
 
-Download the latest version from the Releases page.
+Die aktuelle Version steht auf der Releases-Seite zum Download bereit.
 
-## Requirements
+## Systemvoraussetzungen
 
-- Windows 10 or Windows 11
+- Windows 10 oder Windows 11
 
-## Building from Source
+## Projekt selbst kompilieren
 
-Requirements:
+Benötigt werden:
 
 - Visual Studio 2022
 - .NET 8 SDK
 
-Clone the repository:
+Repository klonen:
 
 ```bash
-git clone https://github.com/Poydran/Shiftplanner.git
+git clone https://github.com/Poydran/Schichtplaner.git
 ```
 
-Open the solution:
+Anschließend die Lösung öffnen:
 
 ```text
 Shiftplanner.sln
 ```
 
-Build and run the project in Visual Studio.
+Das Projekt in Visual Studio erstellen und ausführen.
 
-## Third-Party Software
+## Drittanbieter-Software
 
-This application uses third-party open source software.
+Diese Anwendung verwendet Open-Source-Software von Drittanbietern.
 
-See `THIRD-PARTY-NOTICES.txt` for details.
+Weitere Informationen befinden sich in der Datei `THIRD-PARTY-NOTICES.txt` .
 
 ## Copyright
 
@@ -72,5 +75,5 @@ Copyright © 2026 Fabian Teufel
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0.
-See the LICENSE file for details.
+Dieses Projekt steht unter der GNU General Public License v3.0 (GPL-3.0).
+Weitere Informationen sind in der Datei `LICENSE` enthalten.
