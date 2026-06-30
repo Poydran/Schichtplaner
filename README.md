@@ -23,10 +23,14 @@ Entwickelt für Personen, die Dienstpläne erstellen und diese anschließend als
 - PDF-Export pro Mitarbeitendem
 - PDF-Export pro Standort
 - CSV-Export
-- Optionale automatische Pausenberechnung nach deutschem Arbeitszeitgesetz
+- Optionale automatische Berücksichtigung gesetzlicher Mindestpausen
 - Schichtübersicht und Statistiken
 - Frei definierbare Standorte und Positionen
 - Feiertage nach Bundesland 
+
+Hinweis: 
+Die automatische Pausenberechnung dient als Unterstützung.
+Die Verantwortung für die Einhaltung der geltenden arbeitsrechtlichen Vorschriften liegt beim Anwender.
 
 ## Screenshots
 
