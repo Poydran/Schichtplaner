@@ -1,0 +1,64 @@
+﻿<UserControl x:Class="ShiftPlanner.Subwidgets.KalenderTag"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+            
+             xmlns:local="clr-namespace:ShiftPlanner.Subwidgets"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800" SizeChanged="UserControl_SizeChanged">
+   
+        <Border x:Name="RootBorder"
+                BorderBrush="Gray"
+                BorderThickness="1"
+                Background="Transparent"
+                Margin="2"
+                Padding="10"
+                MouseLeftButtonDown="CellClick"
+                MouseRightButtonDown="CellRightClick"
+                MouseEnter="Highlight"
+                MouseLeave="Unhighlight"
+               
+                CornerRadius="5">
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="auto" MinWidth="30"/>
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock  Grid.Column="1" x:Name="SchichtText"  TextWrapping="Wrap"
+                     Foreground="White"   TextTrimming="CharacterEllipsis" Text="0 | 1 x Aufsicht" FontSize="16" Padding="5,5,0,0" HorizontalAlignment="Stretch">
+
+                </TextBlock>
+                <Grid Grid.Column="0">
+
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="30"/>
+                        <RowDefinition Height="auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock x:Name="DateText" Text="30" Foreground="White" Margin="5,5,0,0" FontSize="16" Grid.Row="0"/>
+                    <TextBlock x:Name="HolidayText" Visibility="Collapsed" Foreground="Violet"  FontSize="11" Margin="10,0,5,5" Grid.Row="1" HorizontalAlignment="Stretch"/>
+
+                </Grid>
+
+
+            </Grid>
+
+            <Border Grid.Row="1" x:Name="ActiveInfoBorder" Background="black" CornerRadius="4" Padding="3" HorizontalAlignment="Left" Visibility="Collapsed">
+
+                <TextBlock  x:Name="ActiveMAInfo" Text="Dokuzentrum/Aufsicht" Foreground="White" Margin="5,0,5,0" FontSize="16" />
+
+            </Border>
+            
+        </Grid>
+    </Border>
+            
+   
+</UserControl>

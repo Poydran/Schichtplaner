@@ -1,0 +1,734 @@
+﻿<Window x:Class="ShiftPlanner.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ShiftPlanner"
+        Closing="SoftwareClosing"
+        mc:Ignorable="d"
+        WindowStartupLocation="CenterScreen"
+        Title="Schichtplaner" Height="500" Width="900">
+
+    <Window.Resources>
+
+        <local:DivideBySevenConverter x:Key="DivideBySevenConverter"/>
+
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="30"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+
+        <Border Grid.Row="0"
+              Background="#1E1E1E"
+              Padding="3">
+            <Border 
+                     Background="Transparent"
+                     Height="30" VerticalAlignment="Top">
+                <Menu Grid.Row="0" Background="#1E1E1E"
+          Foreground="White">
+
+                    <MenuItem x:Name="SaveButton" Header="Datei" Background="Transparent" FontSize="14" BorderThickness="1,0,1,1" BorderBrush="LightGray" Width="auto" HorizontalAlignment="Left" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" >
+
+
+                    <MenuItem Header="Speicher" Command="Save" Background="#1E1E1E"   Foreground="White"/>
+                    <MenuItem Header="Speichern unter" Click="Click_SavePlan" Background="#1E1E1E"   Foreground="White"/>
+                    <MenuItem Header="Laden" Click="Click_LoadPlan" Background="#1E1E1E"   Foreground="White"/>
+                    <Separator/>
+                    <MenuItem Header="Export_CSV" Click="Click_ExportCSV" Background="#1E1E1E"   Foreground="White"/>
+                    <MenuItem Header="Export_PDF" Click="Click_ExportPDF_DayMA" Background="#1E1E1E"   Foreground="White"/>
+                       
+                    <MenuItem Header="Export_PDF_Pro_Mitarbeiter" Click="Click_ExportPDFPerPerson" Background="#1E1E1E"   Foreground="White"/>
+                </MenuItem>
+
+                    <MenuItem FontSize="14"   Header="Standorte" Background="Transparent" BorderThickness="0,0,1,1" BorderBrush="LightGray" Width="auto" HorizontalAlignment="Left" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" >
+                    <MenuItem Header="Neuer Standort"  Click="AddStandort_Click" Background="#1E1E1E"   Foreground="White" />
+                    <MenuItem Header="Standort löschen" Background="#1E1E1E"   Foreground="White"  Click="RemoveStandort_Click"/>
+
+                </MenuItem>
+
+                    <MenuItem FontSize="14"  Header="Mitarbeiter" Background="Transparent"  BorderBrush="LightGray" BorderThickness="0,0,1,1" Width="auto" HorizontalAlignment="Left" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" >
+                        <MenuItem Header="Neuer Mitarbeiter"  Click="AddEmployee_Click" Background="#1E1E1E"   Foreground="White"/>
+                        <MenuItem Header="Mitarbeiter löschen"  Click="RemoveEmployee_Click" Background="#1E1E1E"   Foreground="White"/>
+                        <Separator/>
+                        <MenuItem Header="Rolle hinzufügen"  Click="AddRole_Click" Background="#1E1E1E"   Foreground="White"/>
+                        <MenuItem Header="Rolle löschen"  Click="RemoveRole_Click" Background="#1E1E1E"   Foreground="White"/>
+                        <MenuItem Header="Rolle umbenennen"  Click="RenameRole_Click" Background="#1E1E1E"   Foreground="White"/>
+                    </MenuItem>
+
+                   <MenuItem FontSize="14"  Header="Settings" Background="Transparent" BorderThickness="0,0,1,1" BorderBrush="LightGray" Width="auto" HorizontalAlignment="Left" VerticalAlignment="Stretch" HorizontalContentAlignment="Center">
+                         <MenuItem   x:Name="FarbSettings"  Header="Farbe nur für Kanten"
+                                     IsCheckable="True" Checked="RedrawCalendar"  Unchecked="RedrawCalendar" Foreground="Black">
+                            <MenuItem.Style>
+                                <Style TargetType="MenuItem">
+                                    <Setter Property="Icon">
+                                        <Setter.Value>
+                                            <TextBlock Text="✓"
+                                   Foreground="LimeGreen"
+                                   FontWeight="Bold"/>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsChecked" Value="False">
+                                            <Setter Property="Icon" Value="{x:Null}"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </MenuItem.Style>
+                        </MenuItem>
+                        <MenuItem   x:Name="FarbExport"  Header="Nutze Farbe für PDF Export"
+                            IsCheckable="True" Checked="ChangeColorforPDF"  Unchecked="ChangeColorforPDF" Foreground="Black">
+                            <MenuItem.Style>
+                                <Style TargetType="MenuItem">
+                                    <Setter Property="Icon">
+                                        <Setter.Value>
+                                            <TextBlock Text="✓"
+                                                 Foreground="LimeGreen"
+                                                 FontWeight="Bold"/>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsChecked" Value="False">
+                                            <Setter Property="Icon" Value="{x:Null}"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </MenuItem.Style>
+                        </MenuItem>
+                        <Separator/>
+                        <MenuItem  x:Name="VerwendePausenzeiten"   Header="Berechne gesetzliche Pausenzeiten"
+    IsCheckable="True" Checked="ChangePausenSettings"  Unchecked="ChangePausenSettings" Foreground="Black">
+                            <MenuItem.Style>
+                                <Style TargetType="MenuItem">
+                                    <Setter Property="Icon">
+                                        <Setter.Value>
+                                            <TextBlock Text="✓"
+      Foreground="LimeGreen"
+      FontWeight="Bold"/>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsChecked" Value="False">
+                                            <Setter Property="Icon" Value="{x:Null}"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </MenuItem.Style>
+                        </MenuItem>
+                        <MenuItem   x:Name="WochenendToggle"  Header="Wochenenden ausblenden"
+                                IsCheckable="True" Checked="ChangeWEVisibility"  Unchecked="ChangeWEVisibility" Foreground="Black">
+                            <MenuItem.Style>
+                                <Style TargetType="MenuItem">
+                                    <Setter Property="Icon">
+                                        <Setter.Value>
+                                            <TextBlock Text="✓"
+                                        Foreground="LimeGreen"
+                                        FontWeight="Bold"/>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsChecked" Value="False">
+                                            <Setter Property="Icon" Value="{x:Null}"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </MenuItem.Style>
+                        </MenuItem>
+                        <MenuItem   x:Name="Kuerzelsettings"  Header="Rollen Kürzel verwenden"
+                  IsCheckable="True" Checked="ChangeKZOn_Click"  Unchecked="ChangeKZOn_Click" Foreground="Black">
+                            <MenuItem.Style>
+                                <Style TargetType="MenuItem">
+                                    <Setter Property="Icon">
+                                        <Setter.Value>
+                                            <TextBlock Text="✓"
+                                                Foreground="LimeGreen"
+                                                FontWeight="Bold"/>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsChecked" Value="False">
+                                            <Setter Property="Icon" Value="{x:Null}"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </MenuItem.Style>
+                        </MenuItem>
+                        <MenuItem  x:Name="KuerzelsettingsST"   Header="Standort Kürzel verwenden"
+    IsCheckable="True" Checked="ChangeSTKZOn_Click"  Unchecked="ChangeSTKZOn_Click" Foreground="Black">
+                            <MenuItem.Style>
+                                <Style TargetType="MenuItem">
+                                    <Setter Property="Icon">
+                                        <Setter.Value>
+                                            <TextBlock Text="✓"
+                                  Foreground="LimeGreen"
+                                  FontWeight="Bold"/>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsChecked" Value="False">
+                                            <Setter Property="Icon" Value="{x:Null}"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </MenuItem.Style>
+                        </MenuItem>
+                        <Separator/>
+                        <MenuItem  x:Name="ZeigeAbwesenheitsGrund"   Header="Export Abwesenheitsgrund"
+                                IsCheckable="True" Checked="ChangeAbwesenheitsSettings"  Unchecked="ChangeAbwesenheitsSettings" Foreground="Black">
+                            <MenuItem.Style>
+                                <Style TargetType="MenuItem">
+                                    <Setter Property="Icon">
+                                        <Setter.Value>
+                                            <TextBlock Text="✓"
+                                           Foreground="LimeGreen"
+                                           FontWeight="Bold"/>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsChecked" Value="False">
+                                            <Setter Property="Icon" Value="{x:Null}"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </MenuItem.Style>
+                        </MenuItem>
+                        <MenuItem Header="Export Fontgröße Standort"  Foreground="Black">
+                            <MenuItem x:Name="ExportFont" Header="Aktuelle Größe: 12"  Foreground="Black" Click="ChangeFontSize_Click" />
+                        </MenuItem>
+                        <MenuItem Header="Export Fontgröße Mitarbeiter"  Foreground="Black">
+                            <MenuItem x:Name="ExportFontMA" Header="Aktuelle Größe: 12"  Foreground="Black" Click="ChangeFontSizeMA_Click" />
+                        </MenuItem>
+                    </MenuItem>
+
+                    
+            </Menu>
+            </Border>
+        </Border>
+
+        <Grid Grid.Row="1" Grid.ColumnSpan="2">
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="auto"  MaxWidth="250"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="auto" MaxWidth="200"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT -->
+            <Border Grid.Column="0" x:Name="LeftBorder"
+            Background="#2D2D30"
+            Padding="5,0,5,5" Width="250" Visibility="Visible">
+
+                <TabControl x:Name="PlanTabs"
+                        Background="#2D2D30" BorderThickness="0">
+
+                    <TabControl.Resources>
+                        <Style TargetType="TabItem">
+                            <Setter Property="Margin" Value="2,0,2,0"/>
+                        </Style>
+                    </TabControl.Resources>
+
+
+                    <TabItem Header="Standorte" Width="70">
+                        <Grid Margin="0,0,0,0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <ScrollViewer Grid.Row="0"
+                              Margin="0,15,0,0"
+                              VerticalScrollBarVisibility="Auto">
+                             
+
+                                <StackPanel x:Name="StandortBox"
+                                Width="210"
+                                HorizontalAlignment="Center">
+                                    <!-- Employees are filled in runtime-->
+                                </StackPanel>
+                            </ScrollViewer>
+                        </Grid>
+                    </TabItem>
+
+                    <TabItem Header="Mitarbeiter"
+                         Padding="0"
+                         Width="70">
+                        <Grid Margin="0,0,0,0">
+
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="5"/>
+                                <RowDefinition Height="15"/>
+                                <RowDefinition Height="25"/>
+                                <RowDefinition Height="20"/>
+                                <RowDefinition/>
+                            </Grid.RowDefinitions>
+
+
+
+                            <Grid Grid.Row="2"
+                            Margin="0,5,0,0" >
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="25"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="Nur Mitarbeiter in Standort anzeigen:"
+                                       Foreground="White"/>
+                                <CheckBox x:Name="MAHaken"  Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                      Checked="FilterMAbyStandort" Unchecked="FilterMAbyStandort"/>
+                            </Grid>
+
+                            <TextBlock Grid.Row="1" Text="Sortieren:" FontStyle="Normal" FontWeight="Bold" Foreground="White"></TextBlock>
+
+                            <Grid Grid.Row="3"
+                                >
+
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="110"/>
+                                    <ColumnDefinition Width="65"/>
+                                    <ColumnDefinition Width="40"/>
+                                </Grid.ColumnDefinitions>
+
+                                <ComboBox x:Name="Sortierungen"
+                                Grid.Column="0"
+                                 Width="100"
+                                  Margin="0,0,0,0"
+                                 SelectedItem="Name"
+                                 HorizontalAlignment="Left"
+                                          VerticalAlignment="Top"
+                                 HorizontalContentAlignment="Left"
+                                 SelectionChanged="ReloadSort"
+                                 />
+
+                                <ComboBox x:Name="Order"
+                                    Grid.Column="1"
+                                     Width="55"
+                                     SelectedItem="Auf"
+                                     HorizontalAlignment="Left"
+                                     HorizontalContentAlignment="Left"
+                                     SelectionChanged="ReloadSort"
+                                     />
+
+                                <Button   Grid.Column="2" Padding="0,-2,0,0" Width="20" Height="20" Content="↻" FontSize="15" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="ReloadSort"    />
+
+                            </Grid >
+
+                            <ScrollViewer Grid.Row="5"
+                              Margin="0,15,0,0"
+                              VerticalScrollBarVisibility="Auto">
+                                <StackPanel x:Name="EmployeeBox"
+                                Width="210"
+                                HorizontalAlignment="Center">
+                                    <!-- Employees are filled in runtime-->
+                                </StackPanel>
+                            </ScrollViewer>
+
+
+
+                        </Grid>
+                    </TabItem>
+
+
+
+
+
+
+                </TabControl>
+
+
+
+            </Border>
+
+            <!-- CENTER calendar -->
+            <Border Grid.Column="1"
+            Background="#1E1E1E"
+            Padding="0">
+
+
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="50"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+
+                    <Border x:Name="WorkBorder" BorderThickness="0,0,0,1" BorderBrush="LightGray" Grid.Row="0" HorizontalAlignment="Stretch">
+                        <Grid 
+                                    HorizontalAlignment="Stretch">
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="15"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="20"/>
+                                <ColumnDefinition Width="auto"/>
+                                <ColumnDefinition Width="20"/>
+                                <ColumnDefinition MinWidth="60" Width="*" MaxWidth="250"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="15"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Button x:Name="LeftRowB" Grid.Column="0" Content="&lt;"
+                                  Width="15"
+                                  Height="30"
+                                    Foreground="White"
+                                    Background="#2D2D30"
+                                    BorderBrush="#555"
+                                    BorderThickness="0,0,1,0"
+                                     VerticalAlignment="Top"
+                                  Click="ClapInLeft"/>
+
+                            <TextBlock x:Name="LocationText"
+                                 Grid.Column="1"
+                                 Text=""
+                                 FontSize="24"
+                                 Foreground="White"
+                                Margin="10,0"
+                                VerticalAlignment="Center"
+                                TextAlignment="Center"/>
+
+                           
+                            <Button Grid.Column="2" Content="&lt;"
+                                   Width="20"
+                                   Height="25"
+                                    Padding="0,0,0,2"
+                                   Click="PreviousMonth_Click"/>
+                            <TextBlock Grid.Column="3" x:Name="MonthTitleText"
+                              Text="Month Year"
+                              FontSize="24"
+                              Foreground="White"
+                             Margin="10,0"
+                             VerticalAlignment="Center"/>
+                            <Button Grid.Column="4" Content="&gt;"
+                                      Width="20"
+                                      Padding="0,0,0,2"
+                                      Height="25"
+                                      Click="NextMonth_Click"/>
+
+                            <Button Grid.Column="5" Content="Monat"
+                                 Click="Calendar_Click">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="border"
+                                                CornerRadius="8,0,0,0"
+                                                Background="LightGray"
+                                                BorderBrush="Gray"
+                                                          BorderThickness="1,1,0,0"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Bottom">
+
+                                            <ContentPresenter
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
+                                                    Margin="10"/>
+                                        </Border>
+
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="border"
+                                                    Property="Background"
+                                                    Value="#D0D0D0"/>
+                                            </Trigger>
+
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter TargetName="border"
+                                                        Property="Background"
+                                                        Value="#B0B0B0"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+
+                            <Button Grid.Column="6" Content="Woche"
+                                        Click="WeekView_Click" >
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <Border x:Name="border"
+                                            CornerRadius="0,8,0,0"
+                                            Background="LightGray"
+                                            BorderBrush="Gray"
+                                            BorderThickness="1,1,1,0"
+                                                 VerticalAlignment="Bottom"
+                                                HorizontalAlignment="Left">
+
+                                            <ContentPresenter
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                                Margin="10"/>
+                                        </Border>
+
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="border"
+                                                    Property="Background"
+                                                    Value="#D0D0D0"/>
+                                            </Trigger>
+
+                                            <Trigger Property="IsPressed" Value="True">
+                                                <Setter TargetName="border"
+                                                    Property="Background"
+                                                    Value="#B0B0B0"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+
+                            <Button Content="&gt;"
+                                    x:Name="RightRowB"
+                                     Grid.Column="7"
+                                     Foreground="White"
+                                     Background="#2D2D30"
+                                    BorderThickness="1,0,0,0"
+                                     Width="15"
+                                     Height="30"
+                                    VerticalAlignment="Top"
+                             Click="ClapInRight"/>
+
+                        </Grid>
+
+                    </Border>
+
+
+                    <Border Grid.Row="1" Visibility="Visible" x:Name="CalendarBorder">
+
+                        <Grid Margin="5,0,5,5">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="30"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <TextBlock Grid.Column="0" Text="Mo" Foreground="White" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="Di" Foreground="White" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="Mi" Foreground="White" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="3" Text="Do" Foreground="White" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="4" Text="Fr" Foreground="White" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="5" Text="Sa" Foreground="White" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="6" Text="So" Foreground="White" HorizontalAlignment="Center"/>
+                            </Grid>
+
+                            <ItemsControl x:Name="DayController" Grid.Row="1" ItemsSource="{Binding _KalenderTage}">
+
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid   Columns="7"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+
+                            </ItemsControl>
+
+                        </Grid>
+                    </Border>
+
+
+                    <ListBox x:Name="WeekDayList"
+                             Grid.Row="1"
+                              SelectionMode="Single"
+                              Background="Transparent"
+                             ItemsSource="{Binding _WochenTage}"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             HorizontalContentAlignment="Stretch"
+                             Visibility="Collapsed"
+                             Margin="0,0,0,0"
+                             Padding="0,0,0,2">
+
+                        <ListBox.Resources>
+
+                            <Style TargetType="Thumb">
+                                <Setter Property="Background" Value="Red"/>
+                            </Style>
+
+                        </ListBox.Resources>
+
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="MinHeight"
+                                            Value="{Binding ActualHeight,
+                                                            RelativeSource={RelativeSource AncestorType=ListBox},
+                                                            Converter={StaticResource DivideBySevenConverter}}"/>
+                                <Setter Property="Height" Value="auto"></Setter>
+                                <Setter Property="Focusable" Value="False"/>
+
+                                <Setter Property="Background" Value="Transparent"/>
+
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ListBoxItem">
+                                            <Border x:Name="HoverBorder"
+                                                         Background="Transparent">
+                                                <ContentPresenter
+                                                             HorizontalAlignment="Stretch"
+                                                             VerticalAlignment="Stretch"/>
+                                            </Border>
+
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="HoverBorder"
+                                                                  Property="Background"
+                                                                  Value="#2A2A2A"/>
+                                                </Trigger>
+
+                                                <Trigger Property="IsSelected" Value="True">
+                                                    <Setter TargetName="HoverBorder"
+                                                                 Property="Background"
+                                                                 Value="#303030"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+
+                        </ListBox.ItemContainerStyle>
+
+                    </ListBox>
+
+                </Grid>
+
+            </Border>
+
+            <!-- Richt Templates -->
+
+
+            <Border Grid.Column="2" x:Name="RightBorder" Width="175"
+            Background="#2D2D30"
+            Padding="10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"></RowDefinition>
+                        <RowDefinition Height="auto"></RowDefinition>
+                    </Grid.RowDefinitions>
+
+
+                    <StackPanel Grid.Row="0">
+
+                        <TextBlock Text="Schichtdetails"
+                            FontSize="20"
+                            Foreground="White"
+                            Margin="0,0,0,10"/>
+
+                        <TextBlock Text="Rollenbezeichnung:"
+                            FontSize="16"
+                            Foreground="White"
+            
+                            Margin="0,0,0,5"/>      
+
+                        <Grid>
+
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" MinHeight="50"></RowDefinition>
+                                <RowDefinition Height="auto"></RowDefinition>
+                            </Grid.RowDefinitions>
+
+                            <ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Row="0" VerticalAlignment="Stretch">
+
+                                <ItemsControl x:Name="RoleController"  ItemsSource="{Binding _Rollen}"  VerticalAlignment="Stretch">
+
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel 
+                              Background="Transparent"
+                              Margin="10,0,10,0" VerticalAlignment="Stretch" >
+                                            </StackPanel>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+
+                                </ItemsControl>
+                            </ScrollViewer>
+
+                            <StackPanel Grid.Row="1">
+
+                                <TextBlock Text="Schichtdauer:"
+                                  FontSize="16"
+                                  Foreground="White"
+                                  Margin="0,10,0,5"/>
+
+
+                                <Grid Margin="0,0,0,0">
+
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="20"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBox Grid.Column="0"
+                                        x:Name="Begin_Box"
+                                        Text="08:00"
+                                        FontSize="16"
+                                        Width="50"
+                                        Background="#293133"
+                                        Foreground="White"/>
+
+                                    <TextBlock Grid.Column="1"
+                                         Text="-"
+                                         FontSize="16"
+                                         Foreground="White"
+                                         Margin="0,0,0,0"
+                                         HorizontalAlignment="Center"/>
+
+
+                                    <TextBox Grid.Column="2"
+                                        x:Name="Ende_Box"
+                                        Text="16:30"
+                                        FontSize="16"
+                                        Width="50"
+                                        Background="#293133"
+                                        Foreground="White"/>
+
+                                </Grid>
+
+
+
+                                <TextBlock Text="Notiz:"
+                                  FontSize="16"
+                                  Foreground="White"
+                                  Margin="0,10,0,5"/>
+
+                                <TextBox x:Name="Notiz_Box"
+                                   Text=""
+                                   MinHeight="50"
+                                   MaxHeight="300"
+                                   FontSize="16"
+                                   AcceptsReturn="True"
+                                   TextWrapping="Wrap"
+                                   Background="#293133"
+                                   Foreground="White"
+                                   Margin="10,0,10,0"/>
+
+
+                            </StackPanel>
+                        </Grid>
+
+                    </StackPanel>
+
+                    <TextBlock Grid.Row="1" Text="Version: 1.0.0"
+                      FontSize="12"
+                      Foreground="Gray"
+                      VerticalAlignment="Bottom"
+                      Margin="0,0,0,0"/>
+
+
+                </Grid>
+              
+            </Border>
+
+
+        </Grid>
+
+    </Grid>
+
+</Window>

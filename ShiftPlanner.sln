@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36301.6
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShiftPlanner", "ShiftPlanner\ShiftPlanner.csproj", "{FFC2065E-F8B9-475A-9662-19EE2EC6B970}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FFC2065E-F8B9-475A-9662-19EE2EC6B970}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FFC2065E-F8B9-475A-9662-19EE2EC6B970}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FFC2065E-F8B9-475A-9662-19EE2EC6B970}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FFC2065E-F8B9-475A-9662-19EE2EC6B970}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {C52C237D-97AB-4F9A-9DC9-C830F96F8D30}
+	EndGlobalSection
+EndGlobal

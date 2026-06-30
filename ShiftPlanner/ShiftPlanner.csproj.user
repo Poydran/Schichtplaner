@@ -1,0 +1,44 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <_LastSelectedProfileId>D:\Shiftplanner\Sources\ShiftPlanner\ShiftPlanner\Properties\PublishProfiles\FolderProfile.pubxml</_LastSelectedProfileId>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Update="Subwidgets\BestätigungsWidget.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Subwidgets\Employee.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Subwidgets\EmployeeCreater.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Subwidgets\KalenderTag.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Subwidgets\MitarbeiterInfo.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Subwidgets\PlanStandort.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Subwidgets\RoleLabel.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Subwidgets\SchichtEditor.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Subwidgets\SchichtLabel.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Subwidgets\StandortCreater.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Subwidgets\Standorteditor.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Subwidgets\WochenTag.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+</Project>
