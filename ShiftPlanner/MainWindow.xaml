@@ -12,7 +12,26 @@
     <Window.Resources>
 
         <local:DivideBySevenConverter x:Key="DivideBySevenConverter"/>
-
+        <Style x:Key="TransparentButton" TargetType="Button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border
+                    Background="Transparent"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter
+                        HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                        VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                        Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
 
     <Grid>
@@ -60,8 +79,8 @@
                     </MenuItem>
 
                    <MenuItem FontSize="14"  Header="Settings" Background="Transparent" BorderThickness="0,0,1,1" BorderBrush="LightGray" Width="auto" HorizontalAlignment="Left" VerticalAlignment="Stretch" HorizontalContentAlignment="Center">
-                         <MenuItem   x:Name="FarbSettings"  Header="Farbe nur für Kanten"
-                                     IsCheckable="True" Checked="RedrawCalendar"  Unchecked="RedrawCalendar" Foreground="Black">
+                        <MenuItem   x:Name="FarbSettings"  Header="Farbe nur für Kanten" Height="20"
+                                     IsCheckable="True" Checked="RedrawCalendar"  Unchecked="RedrawCalendar" Background="#1E1E1E"   Foreground="White">
                             <MenuItem.Style>
                                 <Style TargetType="MenuItem">
                                     <Setter Property="Icon">
@@ -79,8 +98,8 @@
                                 </Style>
                             </MenuItem.Style>
                         </MenuItem>
-                        <MenuItem   x:Name="FarbExport"  Header="Nutze Farbe für PDF Export"
-                            IsCheckable="True" Checked="ChangeColorforPDF"  Unchecked="ChangeColorforPDF" Foreground="Black">
+                        <MenuItem   x:Name="FarbExport"  Header="Nutze Farbe für PDF Export" Height="20"
+                            IsCheckable="True" Checked="ChangeColorforPDF"  Unchecked="ChangeColorforPDF" Background="#1E1E1E"   Foreground="White">
                             <MenuItem.Style>
                                 <Style TargetType="MenuItem">
                                     <Setter Property="Icon">
@@ -100,7 +119,7 @@
                         </MenuItem>
                         <Separator/>
                         <MenuItem  x:Name="VerwendePausenzeiten"   Header="Berechne gesetzliche Pausenzeiten"
-    IsCheckable="True" Checked="ChangePausenSettings"  Unchecked="ChangePausenSettings" Foreground="Black">
+    IsCheckable="True" Checked="ChangePausenSettings"  Unchecked="ChangePausenSettings" Background="#1E1E1E"   Foreground="White" Height="20">
                             <MenuItem.Style>
                                 <Style TargetType="MenuItem">
                                     <Setter Property="Icon">
@@ -118,8 +137,8 @@
                                 </Style>
                             </MenuItem.Style>
                         </MenuItem>
-                        <MenuItem   x:Name="WochenendToggle"  Header="Wochenenden ausblenden"
-                                IsCheckable="True" Checked="ChangeWEVisibility"  Unchecked="ChangeWEVisibility" Foreground="Black">
+                        <MenuItem   x:Name="WochenendToggle"  Header="Wochenenden ausblenden" Height="20"
+                                IsCheckable="True" Checked="ChangeWEVisibility"  Unchecked="ChangeWEVisibility" Background="#1E1E1E"   Foreground="White">
                             <MenuItem.Style>
                                 <Style TargetType="MenuItem">
                                     <Setter Property="Icon">
@@ -137,8 +156,8 @@
                                 </Style>
                             </MenuItem.Style>
                         </MenuItem>
-                        <MenuItem   x:Name="Kuerzelsettings"  Header="Rollen Kürzel verwenden"
-                  IsCheckable="True" Checked="ChangeKZOn_Click"  Unchecked="ChangeKZOn_Click" Foreground="Black">
+                        <MenuItem   x:Name="Kuerzelsettings"  Header="Rollen Kürzel verwenden" Height="20"
+                  IsCheckable="True" Checked="ChangeKZOn_Click"  Unchecked="ChangeKZOn_Click" Background="#1E1E1E"   Foreground="White">
                             <MenuItem.Style>
                                 <Style TargetType="MenuItem">
                                     <Setter Property="Icon">
@@ -156,8 +175,8 @@
                                 </Style>
                             </MenuItem.Style>
                         </MenuItem>
-                        <MenuItem  x:Name="KuerzelsettingsST"   Header="Standort Kürzel verwenden"
-    IsCheckable="True" Checked="ChangeSTKZOn_Click"  Unchecked="ChangeSTKZOn_Click" Foreground="Black">
+                        <MenuItem  x:Name="KuerzelsettingsST"   Header="Standort Kürzel verwenden" Height="20"
+    IsCheckable="True" Checked="ChangeSTKZOn_Click"  Unchecked="ChangeSTKZOn_Click" Background="#1E1E1E"   Foreground="White">
                             <MenuItem.Style>
                                 <Style TargetType="MenuItem">
                                     <Setter Property="Icon">
@@ -175,9 +194,10 @@
                                 </Style>
                             </MenuItem.Style>
                         </MenuItem>
-                        <Separator/>
-                        <MenuItem  x:Name="ZeigeAbwesenheitsGrund"   Header="Export Abwesenheitsgrund"
-                                IsCheckable="True" Checked="ChangeAbwesenheitsSettings"  Unchecked="ChangeAbwesenheitsSettings" Foreground="Black">
+                        <Separator>
+                        </Separator>
+                        <MenuItem  x:Name="ZeigeAbwesenheitsGrund"   Header="Export Abwesenheitsgrund" Height="20"
+                                IsCheckable="True" Checked="ChangeAbwesenheitsSettings"  Unchecked="ChangeAbwesenheitsSettings" Background="#1E1E1E"   Foreground="White">
                             <MenuItem.Style>
                                 <Style TargetType="MenuItem">
                                     <Setter Property="Icon">
@@ -195,11 +215,11 @@
                                 </Style>
                             </MenuItem.Style>
                         </MenuItem>
-                        <MenuItem Header="Export Fontgröße Standort"  Foreground="Black">
-                            <MenuItem x:Name="ExportFont" Header="Aktuelle Größe: 12"  Foreground="Black" Click="ChangeFontSize_Click" />
+                        <MenuItem Header="Export Fontgröße Standort"  Background="#1E1E1E"   Foreground="White">
+                            <MenuItem x:Name="ExportFont" Header="Aktuelle Größe: 12" Background="#1E1E1E"   Foreground="White" Click="ChangeFontSize_Click" />
                         </MenuItem>
-                        <MenuItem Header="Export Fontgröße Mitarbeiter"  Foreground="Black">
-                            <MenuItem x:Name="ExportFontMA" Header="Aktuelle Größe: 12"  Foreground="Black" Click="ChangeFontSizeMA_Click" />
+                        <MenuItem Header="Export Fontgröße Mitarbeiter"  Background="#1E1E1E"   Foreground="White">
+                            <MenuItem x:Name="ExportFontMA" Header="Aktuelle Größe: 12"  Background="#1E1E1E"   Foreground="White" Click="ChangeFontSizeMA_Click" />
                         </MenuItem>
                     </MenuItem>
 
@@ -258,7 +278,7 @@
 
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="5"/>
-                                <RowDefinition Height="15"/>
+                                <RowDefinition Height="20"/>
                                 <RowDefinition Height="25"/>
                                 <RowDefinition Height="20"/>
                                 <RowDefinition/>
@@ -274,12 +294,12 @@
                                     <ColumnDefinition Width="25"/>
                                 </Grid.ColumnDefinitions>
                                 <TextBlock Grid.Column="0" Text="Nur Mitarbeiter in Standort anzeigen:"
-                                       Foreground="White"/>
+                                       Foreground="White"  />
                                 <CheckBox x:Name="MAHaken"  Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center"
                                       Checked="FilterMAbyStandort" Unchecked="FilterMAbyStandort"/>
                             </Grid>
 
-                            <TextBlock Grid.Row="1" Text="Sortieren:" FontStyle="Normal" FontWeight="Bold" Foreground="White"></TextBlock>
+                            <TextBlock Grid.Row="1" Text="Sortieren:" FontStyle="Normal" FontSize="16" FontWeight="Bold" Foreground="White"></TextBlock>
 
                             <Grid Grid.Row="3"
                                 >
@@ -353,30 +373,43 @@
                     </Grid.RowDefinitions>
 
 
-                    <Border x:Name="WorkBorder" BorderThickness="0,0,0,1" BorderBrush="LightGray" Grid.Row="0" HorizontalAlignment="Stretch">
+                    <Border x:Name="WorkBorder" BorderThickness="0,0,0,2" BorderBrush="LightGray" Grid.Row="0" HorizontalAlignment="Stretch">
                         <Grid 
                                     HorizontalAlignment="Stretch">
 
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="15"/>
+                                <ColumnDefinition Width="25"/>
                                 <ColumnDefinition Width="*"/>
                                 <ColumnDefinition Width="20"/>
                                 <ColumnDefinition Width="auto"/>
                                 <ColumnDefinition Width="20"/>
                                 <ColumnDefinition MinWidth="60" Width="*" MaxWidth="250"/>
                                 <ColumnDefinition Width="*"/>
-                                <ColumnDefinition Width="15"/>
+                                <ColumnDefinition Width="25"/>
                             </Grid.ColumnDefinitions>
 
-                            <Button x:Name="LeftRowB" Grid.Column="0" Content="&lt;"
-                                  Width="15"
-                                  Height="30"
+                            <Border  Grid.Column="0" VerticalAlignment="Top"  x:Name="LeftClapBorder"
+                             Background="#2D2D30"  BorderThickness="0,0,2,0" CornerRadius="0,5,5,0"
+                              BorderBrush="LightGray" >
+
+                                <Button x:Name="LeftRowB" Content="&lt;"
+                                  Width="20"
+                                  Height="45"
+                                        FontWeight="Bold"
+                                        Style="{StaticResource TransparentButton}"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Stretch"
+                                  HorizontalContentAlignment="Center"
+                                   FontSize="16"
                                     Foreground="White"
-                                    Background="#2D2D30"
-                                    BorderBrush="#555"
-                                    BorderThickness="0,0,1,0"
-                                     VerticalAlignment="Top"
-                                  Click="ClapInLeft"/>
+                                    Background="Transparent"
+                                        BorderBrush="Transparent"
+                                        BorderThickness="0,0,0,0" 
+                                  Click="ClapInLeft" >
+
+                                </Button>
+
+                            </Border>
 
                             <TextBlock x:Name="LocationText"
                                  Grid.Column="1"
@@ -406,14 +439,14 @@
                                       Click="NextMonth_Click"/>
 
                             <Button Grid.Column="5" Content="Monat"
-                                 Click="Calendar_Click">
+                                 Click="Calendar_Click" Foreground="White">
                                 <Button.Template>
                                     <ControlTemplate TargetType="Button">
                                         <Border x:Name="border"
                                                 CornerRadius="8,0,0,0"
-                                                Background="LightGray"
-                                                BorderBrush="Gray"
-                                                          BorderThickness="1,1,0,0"
+                                                Background="#2D2D30"
+                                                BorderBrush="LightGray"
+                                                          BorderThickness="2,2,0,0"
                                                     HorizontalAlignment="Right"
                                                     VerticalAlignment="Bottom">
 
@@ -427,13 +460,13 @@
                                             <Trigger Property="IsMouseOver" Value="True">
                                                 <Setter TargetName="border"
                                                     Property="Background"
-                                                    Value="#D0D0D0"/>
+                                                    Value="Black"/>
                                             </Trigger>
 
                                             <Trigger Property="IsPressed" Value="True">
                                                 <Setter TargetName="border"
                                                         Property="Background"
-                                                        Value="#B0B0B0"/>
+                                                        Value="Black"/>
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -441,14 +474,14 @@
                             </Button>
 
                             <Button Grid.Column="6" Content="Woche"
-                                        Click="WeekView_Click" >
+                                        Click="WeekView_Click" Foreground="White">
                                 <Button.Template>
                                     <ControlTemplate TargetType="Button">
                                         <Border x:Name="border"
                                             CornerRadius="0,8,0,0"
-                                            Background="LightGray"
-                                            BorderBrush="Gray"
-                                            BorderThickness="1,1,1,0"
+                                            Background="#2D2D30"
+                                            BorderBrush="LightGray"
+                                            BorderThickness="1,2,2,0"
                                                  VerticalAlignment="Bottom"
                                                 HorizontalAlignment="Left">
 
@@ -462,29 +495,39 @@
                                             <Trigger Property="IsMouseOver" Value="True">
                                                 <Setter TargetName="border"
                                                     Property="Background"
-                                                    Value="#D0D0D0"/>
+                                                    Value="Black"/>
                                             </Trigger>
 
                                             <Trigger Property="IsPressed" Value="True">
                                                 <Setter TargetName="border"
                                                     Property="Background"
-                                                    Value="#B0B0B0"/>
+                                                    Value="Black"/>
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
                                 </Button.Template>
                             </Button>
 
-                            <Button Content="&gt;"
-                                    x:Name="RightRowB"
-                                     Grid.Column="7"
+                            <Border  Grid.Column="7" VerticalAlignment="Top"  x:Name="RightClapBorder"
+                                  Background="#2D2D30"  BorderThickness="2,0,0,0" CornerRadius="5,0,0,5"
+                                   BorderBrush="LightGray">
+
+                                <Button Content="&gt;"
+                                      x:Name="RightRowB"
+                                      FontSize="16"
+                                        FontWeight="Bold"
+                                     HorizontalContentAlignment="Center"
                                      Foreground="White"
-                                     Background="#2D2D30"
-                                    BorderThickness="1,0,0,0"
-                                     Width="15"
-                                     Height="30"
-                                    VerticalAlignment="Top"
-                             Click="ClapInRight"/>
+                                     Background="Transparent"
+                                    BorderThickness="0,0,0,0"
+                                     Style="{StaticResource TransparentButton}"
+                                       Width="20"
+                                       Height="45"
+                                      
+                               Click="ClapInRight"/>
+
+                            </Border>
+                          
 
                         </Grid>
 
@@ -510,13 +553,13 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
 
-                                <TextBlock Grid.Column="0" Text="Mo" Foreground="White" HorizontalAlignment="Center"/>
-                                <TextBlock Grid.Column="1" Text="Di" Foreground="White" HorizontalAlignment="Center"/>
-                                <TextBlock Grid.Column="2" Text="Mi" Foreground="White" HorizontalAlignment="Center"/>
-                                <TextBlock Grid.Column="3" Text="Do" Foreground="White" HorizontalAlignment="Center"/>
-                                <TextBlock Grid.Column="4" Text="Fr" Foreground="White" HorizontalAlignment="Center"/>
-                                <TextBlock Grid.Column="5" Text="Sa" Foreground="White" HorizontalAlignment="Center"/>
-                                <TextBlock Grid.Column="6" Text="So" Foreground="White" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="0" Text="Mo" FontSize="16" Foreground="White" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="Di" FontSize="16" Foreground="White" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="2" Text="Mi" FontSize="16" Foreground="White" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="3" Text="Do" FontSize="16" Foreground="White" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="4" Text="Fr" FontSize="16" Foreground="White" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="5" Text="Sa" FontSize="16" Foreground="White" HorizontalAlignment="Center"/>
+                                <TextBlock Grid.Column="6" Text="So" FontSize="16" Foreground="White" HorizontalAlignment="Center"/>
                             </Grid>
 
                             <ItemsControl x:Name="DayController" Grid.Row="1" ItemsSource="{Binding _KalenderTage}">
@@ -616,7 +659,7 @@
                     <StackPanel Grid.Row="0">
 
                         <TextBlock Text="Schichtdetails"
-                            FontSize="20"
+                            FontSize="24"
                             Foreground="White"
                             Margin="0,0,0,10"/>
 
@@ -671,7 +714,21 @@
                                         FontSize="16"
                                         Width="50"
                                         Background="#293133"
-                                        Foreground="White"/>
+                                        Foreground="White">
+                                        <TextBox.Style>
+                                            <Style TargetType="TextBox">
+                                                <Setter Property="BorderBrush" Value="LightGray"/>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="BorderBrush" Value="White"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsKeyboardFocused" Value="True">
+                                                        <Setter Property="BorderBrush" Value="White"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBox.Style>
+                                    </TextBox>
 
                                     <TextBlock Grid.Column="1"
                                          Text="-"
@@ -687,7 +744,21 @@
                                         FontSize="16"
                                         Width="50"
                                         Background="#293133"
-                                        Foreground="White"/>
+                                        Foreground="White">
+                                        <TextBox.Style>
+                                            <Style TargetType="TextBox">
+                                                <Setter Property="BorderBrush" Value="LightGray"/>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="BorderBrush" Value="White"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsKeyboardFocused" Value="True">
+                                                        <Setter Property="BorderBrush" Value="White"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBox.Style>
+                                    </TextBox>
 
                                 </Grid>
 
@@ -707,7 +778,24 @@
                                    TextWrapping="Wrap"
                                    Background="#293133"
                                    Foreground="White"
-                                   Margin="10,0,10,0"/>
+                                   CaretBrush="White"
+                                   Margin="10,0,10,0"
+                                        
+                                    >
+                                    <TextBox.Style>
+                                        <Style TargetType="TextBox">
+                                            <Setter Property="BorderBrush" Value="LightGray"/>
+                                            <Style.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter Property="BorderBrush" Value="White"/>
+                                                </Trigger>
+                                                <Trigger Property="IsKeyboardFocused" Value="True">
+                                                    <Setter Property="BorderBrush" Value="White"/>
+                                                </Trigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
 
 
                             </StackPanel>

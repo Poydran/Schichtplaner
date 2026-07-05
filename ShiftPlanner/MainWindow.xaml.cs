@@ -1367,7 +1367,7 @@ namespace ShiftPlanner
         {
 
             string result = Interaction.InputBox(
-                "Gib einen Namen für die neue Rolle/n ein:",
+                "Gib einen Namen für die neue Rolle/n ein:" + Environment.NewLine + "Eingabeformat: Name oder Name(Kürzel)",
                 "Rollenerstellung",
                 "");
 

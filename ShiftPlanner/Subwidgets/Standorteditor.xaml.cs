@@ -159,6 +159,7 @@ namespace ShiftPlanner.Subwidgets
 
             BundeslaenderWahl.Visibility = Visibility.Collapsed;
             BundeslandText.Visibility = Visibility.Visible;
+            SchliessTooltip.Visibility = Visibility.Collapsed;
 
             CBClosedOnHoliday.IsHitTestVisible = false;
 
@@ -178,7 +179,7 @@ namespace ShiftPlanner.Subwidgets
 
             Schliesstage.Visibility = Visibility.Collapsed;
             SchliesstagBox.Visibility = Visibility.Visible;
-
+            SchliessTooltip.Visibility = Visibility.Visible;
             StandortKuerzel.Visibility = Visibility.Collapsed;
             StandortKuerzelEdit.Visibility = Visibility.Visible;
             CBClosedOnHoliday.IsHitTestVisible = true;

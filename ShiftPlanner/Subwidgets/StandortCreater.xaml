@@ -6,17 +6,49 @@
         xmlns:local="clr-namespace:ShiftPlanner.Subwidgets"
         mc:Ignorable="d"
         WindowStartupLocation="CenterScreen"
-        Title="Standorterstellung" Height="300" Width="400">
-    <Grid>
+        Title="Standorterstellung" Height="300" Width="400" Foreground="White">
+    <Border Background="#2D2D30">
+        
+        <Grid>
         <StackPanel Margin="20">
 
             <TextBlock Text="Standortname:"/>
-            <TextBox x:Name="NameInput"
-         Text="Dokumentationszentrum"
-         Margin="0,5,0,10"/>
+            <Grid Margin="10,0,0,0"
+                HorizontalAlignment="Stretch">
 
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="30"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBox x:Name="NameInput" Grid.Column="0"
+                    Text="Dokumentationszentrum"
+                    Margin="0,5,0,5" VerticalAlignment="Center"/>
 
-            <Grid Margin="0,0,0,0"
+                <Border Width="18" Grid.Column="1"
+                   Height="18"
+                   CornerRadius="9"
+                   Background="#3A3A3A"
+                    Cursor="Help" VerticalAlignment="Center">
+                    
+                    <Border.ToolTip>
+                        <ToolTip FontSize="16">
+                            <TextBlock TextWrapping="Wrap">
+                                Eingabeformat: Name oder Name(Kürzel)        
+                            </TextBlock>
+                        </ToolTip>
+                    </Border.ToolTip>
+                    
+                    <TextBlock Text="i"
+                      Foreground="White"
+                      FontWeight="Bold"
+                      HorizontalAlignment="Center"
+                      VerticalAlignment="Center"/>
+                </Border>
+
+            </Grid>
+           
+            <Grid Margin="0,10,0,0"
           HorizontalAlignment="Center">
 
                 <Grid.ColumnDefinitions>
@@ -25,14 +57,14 @@
                 </Grid.ColumnDefinitions>
 
                 <Button Grid.Column="0"
-            Content="Add"
+            Content="Bestätigen"
             Width="80"
             Margin="0,0,50,0"
             HorizontalAlignment="Left"
             Click="Add_Click"/>
 
                 <Button Grid.Column="1"
-            Content="cancel"
+            Content="Abbrechen"
             Width="80"
             HorizontalAlignment="Right"
             Click="Cancel_Click"/>
@@ -41,4 +73,7 @@
 
         </StackPanel>
     </Grid>
+        
+    </Border>
+    
 </Window>

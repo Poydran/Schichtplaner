@@ -263,7 +263,7 @@ namespace ShiftPlanner.Subwidgets
             abwesendBox.Visibility = Visibility.Collapsed;
             UrlaubsTage.Visibility = Visibility.Visible;
             UrlaubsBox.Visibility = Visibility.Collapsed;
-
+            AbwesenheitsTooltip.Visibility = Visibility.Collapsed;
             DeleteShifts.Visibility = Visibility.Collapsed;
             ExportMAPDF.Visibility = Visibility.Visible;
 
@@ -330,6 +330,8 @@ namespace ShiftPlanner.Subwidgets
 
             DeleteShifts.Visibility = Visibility.Visible;
             ExportMAPDF.Visibility = Visibility.Collapsed;
+
+            AbwesenheitsTooltip.Visibility = Visibility.Visible;
 
             MyColorPicker.IsEnabled = true;
 
