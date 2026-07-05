@@ -31,7 +31,7 @@
                 <TextBlock Grid.Column="0"
                     Text="Standortinfo:"
                     Foreground="White"
-                    FontSize="16"
+                    FontSize="20"
                     VerticalAlignment="Center"
                     FontWeight="Bold"/>
 
@@ -69,8 +69,9 @@
                      Visibility="Collapsed"/>
 
             </Grid>
-
-            <Grid>
+            <StackPanel Margin="10,5,0,0">
+                
+                <Grid>
 
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="100"/>
@@ -304,13 +305,18 @@
                         </Border.ToolTip>
 
                         <TextBlock Text="i"
-      Foreground="White"
+      Foreground="Yellow"
       FontWeight="Bold"
       HorizontalAlignment="Center"
       VerticalAlignment="Center"/>
                     </Border>
                 </Grid>
             </StackPanel>
+            
+                
+            </StackPanel>
+            
+            
         </StackPanel>
     </Border>
 </Window>

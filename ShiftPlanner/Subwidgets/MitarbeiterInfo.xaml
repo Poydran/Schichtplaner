@@ -28,7 +28,7 @@
                 <TextBlock Grid.Column="0"
                 Text="Mitarbeiterinfo:"
                 Foreground="White"
-                FontSize="16"
+                FontSize="20"
                 VerticalAlignment="Center"
                 FontWeight="Bold"/>
 
@@ -79,7 +79,7 @@
 
             </Grid>
 
-            <Grid Margin="10,0,0,0">
+            <Grid Margin="10,5,0,0">
 
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="100"/>
@@ -332,7 +332,7 @@
             <TextBlock
               Text="Arbeitstage: "
               Foreground="White"
-              FontSize="16"
+              FontSize="20"
                 FontWeight="Bold"
                 Margin="0,15,0,0"
               />
@@ -412,7 +412,7 @@
                         </Border.ToolTip>
                         
                         <TextBlock Text="i"
-                          Foreground="White"
+                          Foreground="Yellow"
                           FontWeight="Bold"
                           HorizontalAlignment="Center"
                           VerticalAlignment="Center"/>
@@ -461,7 +461,7 @@
             <TextBlock
                   Text="Schichten: "
                   Foreground="White"
-                  FontSize="16"
+                  FontSize="20"
                 FontWeight="Bold"
                 Margin="0,15,0,0"
                   />

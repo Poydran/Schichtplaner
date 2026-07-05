@@ -40,7 +40,7 @@
                     </Border.ToolTip>
                     
                     <TextBlock Text="i"
-                      Foreground="White"
+                      Foreground="Yellow"
                       FontWeight="Bold"
                       HorizontalAlignment="Center"
                       VerticalAlignment="Center"/>

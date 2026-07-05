@@ -25,7 +25,7 @@
                 <TextBlock Grid.Column="0"
                         Text="SchichtDetails:"
                         Foreground="White"
-                        FontSize="16"
+                        FontSize="20"
                         FontWeight="Bold"/>
 
                 <Button Grid.Column="1"
@@ -61,7 +61,7 @@
                     Visibility="Collapsed"/>
 
             </Grid>
-            <StackPanel>
+            <StackPanel Margin="10,5,0,0">
 
                 <TextBlock
                   x:Name="SchichtDatum"
