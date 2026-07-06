@@ -51,9 +51,6 @@ namespace ShiftPlanner
             Sortierungen.Items.Add("Zugeteilte Stunden");
             Sortierungen.Items.Add("Stunden Differenz");
 
-            Order.Items.Add("Auf");
-            Order.Items.Add("Ab");
-
             WeekDayList.DataContext = this;
             DayController.DataContext = this;
             RoleController.DataContext = this;
@@ -106,6 +103,8 @@ namespace ShiftPlanner
         private bool _UseRoleKuerzel = false;
 
         private bool _UseStandortKuerzel = false;
+
+        private bool _AufundAb = false;
 
         private bool _ShowOutOfOfficeReason = false;
 
@@ -1270,6 +1269,20 @@ namespace ShiftPlanner
         {
             SortierMitarbeiter(Sortierungen);
         }
+        private void ChangeOrder(object sender, RoutedEventArgs e)
+        {
+            _AufundAb = !_AufundAb;
+            if(_AufundAb)
+            {
+                Orientierung.Content = "↑";
+            }
+            else
+            {
+                Orientierung.Content = "↓";
+            }
+            SortierMitarbeiter(Sortierungen);
+
+        }
         private void SortierMitarbeiter(ComboBox Selector)
         {
             switch (Selector.SelectedIndex)
@@ -1290,14 +1303,14 @@ namespace ShiftPlanner
         }
         private void Sortierung_Name()
         {
-            List<EmployeeData> SortedList = Order.SelectedIndex == 0 ? _Mitartbeiter.OrderBy(Employee => Employee._MitarbeiterName.ToLower()).ToList() : _Mitartbeiter.OrderByDescending(Employee => Employee._MitarbeiterName.ToLower()).ToList();
+            List<EmployeeData> SortedList = !_AufundAb ? _Mitartbeiter.OrderBy(Employee => Employee._MitarbeiterName.ToLower()).ToList() : _Mitartbeiter.OrderByDescending(Employee => Employee._MitarbeiterName.ToLower()).ToList();
             _Mitartbeiter = SortedList;
             RecalcMitarberiterView(MAHaken);
         }
         private void Sortierung_ZielStunden()
         {
 
-            List<EmployeeData> SortedList = Order.SelectedIndex == 0 ? _Mitartbeiter.OrderBy(Employee => Employee._ZielStunden).ToList()
+            List<EmployeeData> SortedList = !_AufundAb ? _Mitartbeiter.OrderBy(Employee => Employee._ZielStunden).ToList()
                 : _Mitartbeiter.OrderByDescending(Employee => Employee._ZielStunden).ToList();
             _Mitartbeiter = SortedList;
             RecalcMitarberiterView(MAHaken);
@@ -1305,7 +1318,7 @@ namespace ShiftPlanner
         private void Sortierung_Stunden()
         {
 
-            List<EmployeeData> SortedList = Order.SelectedIndex == 0 ? _Mitartbeiter.OrderBy(Employee => Employee._VerplanteStunden).ToList()
+            List<EmployeeData> SortedList = !_AufundAb ? _Mitartbeiter.OrderBy(Employee => Employee._VerplanteStunden).ToList()
                 : _Mitartbeiter.OrderByDescending(Employee => Employee._VerplanteStunden).ToList();
             _Mitartbeiter = SortedList;
             RecalcMitarberiterView(MAHaken);
@@ -1313,7 +1326,7 @@ namespace ShiftPlanner
         private void Sortierung_TimeDiff()
         {
 
-            List<EmployeeData> SortedList = Order.SelectedIndex == 0 ? _Mitartbeiter.OrderBy(Employee =>  Employee._ZielStunden - Employee._VerplanteStunden).ToList()
+            List<EmployeeData> SortedList = !_AufundAb ? _Mitartbeiter.OrderBy(Employee =>  Employee._ZielStunden - Employee._VerplanteStunden).ToList()
                 : _Mitartbeiter.OrderByDescending(Employee => Employee._ZielStunden - Employee._VerplanteStunden).ToList();
             _Mitartbeiter = SortedList;
             RecalcMitarberiterView(MAHaken);

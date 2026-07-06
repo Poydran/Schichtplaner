@@ -276,7 +276,7 @@
                                 <RowDefinition Height="5"/>
                                 <RowDefinition Height="20"/>
                                 <RowDefinition Height="25"/>
-                                <RowDefinition Height="20"/>
+                                <RowDefinition Height="27"/>
                                 <RowDefinition/>
                             </Grid.RowDefinitions>
 
@@ -301,14 +301,15 @@
                                 >
 
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="110"/>
-                                    <ColumnDefinition Width="65"/>
+                                    <ColumnDefinition Width="150"/>
+                                    <ColumnDefinition Width="30"/>
                                     <ColumnDefinition Width="40"/>
                                 </Grid.ColumnDefinitions>
 
                                 <ComboBox x:Name="Sortierungen"
                                 Grid.Column="0"
-                                 Width="100"
+                                 Width="140"
+                                          Height="25"
                                   Margin="0,0,0,0"
                                  SelectedItem="Name"
                                  HorizontalAlignment="Left"
@@ -317,16 +318,8 @@
                                  SelectionChanged="ReloadSort"
                                  />
 
-                                <ComboBox x:Name="Order"
-                                    Grid.Column="1"
-                                     Width="55"
-                                     SelectedItem="Auf"
-                                     HorizontalAlignment="Left"
-                                     HorizontalContentAlignment="Left"
-                                     SelectionChanged="ReloadSort"
-                                     />
-
-                                <Button   Grid.Column="2" Padding="0,-2,0,0" Width="20" Height="20" Content="↻" FontSize="15" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="ReloadSort"    />
+                                <Button  x:Name="Orientierung" Padding="0,-3,0,0"  Grid.Column="1" Width="20" Height="20" Content="↓" FontSize="20" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="ChangeOrder"    />
+                                <Button   Grid.Column="2" Padding="0,0,0,0" Width="20" Height="20" Content="↻" FontSize="15" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Click="ReloadSort"    />
 
                             </Grid >
 
