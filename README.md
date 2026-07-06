@@ -34,7 +34,7 @@ Die Verantwortung für die Einhaltung der geltenden arbeitsrechtlichen Vorschrif
 
 ## Screenshots
 
-#Hauptfenster
+###Hauptfenster
 ![Hauptfenster](Screenshots/MainWindow.png)
 
 
