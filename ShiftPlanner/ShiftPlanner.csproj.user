@@ -4,7 +4,13 @@
     <_LastSelectedProfileId>D:\Shiftplanner\Shiftplanner-Public\ShiftPlanner\ShiftPlanner\Properties\PublishProfiles\FolderProfile.pubxml</_LastSelectedProfileId>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Update="Subwidgets\Automtion.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Subwidgets\BestätigungsWidget.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Subwidgets\DailyShiftsHandle.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Update="Subwidgets\Employee.xaml.cs">

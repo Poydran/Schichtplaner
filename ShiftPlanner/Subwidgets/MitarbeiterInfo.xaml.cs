@@ -268,6 +268,8 @@ namespace ShiftPlanner.Subwidgets
             ExportMAPDF.Visibility = Visibility.Visible;
 
             MyColorPicker.IsEnabled = false;
+
+            DialogResult = true;
         }
         private void ExportMA(object sender, RoutedEventArgs e)
         {

@@ -29,7 +29,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using static QuestPDF.Helpers.Colors;
 using static System.Runtime.InteropServices.JavaScript.JSType;
-
+using ShiftPlanner.Utility;
 
 
 
@@ -337,63 +337,144 @@ namespace ShiftPlanner
 
 
         }
-        double GetTimeFromString(string UhrzeitString, out TimeOnly OutNormalizedTime)
+
+
+    
+
+        //Tools
+
+        private void OpenAutomator(object sender, RoutedEventArgs e)
         {
 
-            TimeOnly NormalizedTime = new();
-            double outdouble = 0.0f;
-            bool isValid = TryParseFlexibleTime(UhrzeitString, out NormalizedTime);
-            if (isValid)
+            if (_ActiveStandortID < 0)
             {
-                int hour = NormalizedTime.Hour;
-
-                int min = NormalizedTime.Minute;
-
-                outdouble = hour * 60 + min;
+                MessageBox.Show("Bitte wähle vorher einen Standort aus.");
+                return;
             }
 
-            OutNormalizedTime = NormalizedTime;
-            return outdouble;
+            Automtion Automation = new Automtion();
+            Automation.Owner = this;
+
+            foreach(RoleLabel Rolle in _Rollen)
+            {
+                Automation.Rollen.Add(Rolle.RoleData.RoleName);
+            }
+
+            Automation.MakeNewTemplate();
+            Automation.Automate += TriggerAutomation;
+
+            bool? result = Automation.ShowDialog();
+            if (result != null)
+            {
+                Automation.Automate -= TriggerAutomation;
+            }
+
         }
-        bool IsValidTimeString(string UhrzeitString)
+
+
+        private void TriggerAutomation(List<DayTemplateData> DTDList)
         {
-            TimeOnly NormalizedTime = new();
-            bool isValid = TryParseFlexibleTime(UhrzeitString, out NormalizedTime);
-           
 
-            if(isValid)
+            foreach (KeyValuePair<int, string> kvp in _DayMapping)
             {
-                int hour = NormalizedTime.Hour;
+                 List<int> LinkedEmployeeIDs = new();
+                DateTime dateTime = new DateTime(_currentMonth.Year, _currentMonth.Month, kvp.Key);
+                bool TagIsHoliiday = false;
+                if (GetStandort(_ActiveStandortID) is PlanStandortData PSD)
+                {
+                    if (PSD.SchliessTageList.Contains(kvp.Key.ToString()) || PSD.SchliessTageList.Contains(kvp.Value.ToLower())) continue;
 
-                int min = NormalizedTime.Minute;
+                    TagIsHoliiday = HolidayService.IsHoliday(dateTime, PSD.Bundesland);
+                    if (TagIsHoliiday && PSD.bIsClosedOnHoliday) continue;
+                }
+             
 
-                if (hour > 23 || hour < 0 || min > 59 || min < 0) return false;
-       
+
+                foreach (DayTemplateData DTD in DTDList)
+                {
+                    if(DTD.TagesListe.Contains(kvp.Key.ToString()) || DTD.TagesListe.Contains(kvp.Value.ToLower()))
+                    {
+                        SchichtZeit schichtZeit = new SchichtZeit();
+                        TimeOnly OutTime = new();
+                        schichtZeit.SchichtStart = UtilityClass.GetTimeFromString(DTD.SchichtStartText, out OutTime);
+                        schichtZeit.SchichtStartText = OutTime.ToShortTimeString();
+                        schichtZeit.SchichtEnde = UtilityClass.GetTimeFromString(DTD.SchichtSchlussText, out OutTime);
+                        schichtZeit.SchichtSchlussText = OutTime.ToShortTimeString();
+                        double StundenZahl = Math.Abs(schichtZeit.SchichtEnde - schichtZeit.SchichtStart) / 60;
+                        if (_UseBreakTimes)
+                        {
+                            if (StundenZahl > 9)
+                            {
+                                StundenZahl -= .75f;
+                                schichtZeit.PausenZeit = 45;
+                            }
+                            else if (StundenZahl > 6)
+                            {
+                                StundenZahl -= .5f;
+                                schichtZeit.PausenZeit = 30;
+                            }
+                        }
+                        schichtZeit.SchichtStunden = Math.Round(StundenZahl, 2);
+                        for (int i = 0; i < DTD.Anzahl; i++)
+                        {
+                            SchichtInfo schichtInfo = new SchichtInfo();
+                            schichtInfo.SchichtRolle = DTD.SchichtRolle;
+                            schichtInfo.Zeiten = schichtZeit;
+                            schichtInfo.SLinkedID = _ActiveStandortID;
+                            schichtInfo.SchichtID = _SchichtIDCounter;
+                            schichtInfo.bIsHoliday = TagIsHoliiday;
+                            schichtInfo.Date = dateTime;
+                            schichtInfo.Notiz = "";
+
+                            foreach (EmployeeData ED in _Mitartbeiter)
+                            {
+                                if (LinkedEmployeeIDs.Contains(ED._MitarbeiterID)) continue;
+                                if(ED._Standorte.Contains(_ActiveStandortID) && ED._VorgeseheneRollen.Contains(DTD.SchichtRolle.ToLower()) || !IsDayOff(ED.AbwesendListeNew, kvp.Key))
+                                {
+                                    LinkedEmployeeIDs.Add(ED._MitarbeiterID);
+                                    if (HasMAShiftAtDay(dateTime, ED))
+                                    {
+                                        continue;
+                                    }
+                                    schichtInfo.ELinkedID = ED._MitarbeiterID;
+
+                                    ED._VerplanteStunden += schichtInfo.Zeiten.SchichtStunden;
+                                    _MitarbeiterWidgetMap.TryGetValue(ED._MitarbeiterID, out Employee? OutEmployee);
+                                    if (OutEmployee != null)
+                                    {
+                                        OutEmployee.SetHours(ED._VerplanteStunden, ED._ZielStunden);
+                                    }
+
+                                    ED._ZugeteilteSchichten.Add(schichtInfo.SchichtID);
+
+
+
+
+
+
+                                    _SchichtIDCounter++;
+                                    _Schichten.Add(schichtInfo);
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            return isValid;
+
+            SwitchGenerator();
         }
-        public static bool TryParseFlexibleTime(string input, out TimeOnly time)
+
+        private bool HasMAShiftAtDay(DateTime dateTime, EmployeeData ED)
         {
-            time = default;
-
-            input = input.Trim();
-
-            // 8 -> 08:00
-            if (Regex.IsMatch(input, @"^\d{1,2}$"))
+            foreach (int MASchicht in ED._ZugeteilteSchichten)
             {
-                input += ":00";
-            }
-            // 800 -> 08:00, 0800 -> 08:00
-            else if (Regex.IsMatch(input, @"^\d{3,4}$"))
-            {
-                input = input.PadLeft(4, '0');
-                input = input.Insert(2, ":");
+                if (GetSchicht(MASchicht) is SchichtInfo MAShift)
+                {
+                    if (MAShift.Date == dateTime) return true;
+                }
             }
 
-            return TimeOnly.TryParseExact(
-                input,
-                "H:mm",
-                out time);
+            return false;
         }
 
 
@@ -1990,7 +2071,7 @@ namespace ShiftPlanner
                 return false;
             }
 
-            if (!IsValidTimeString(Begin_Box.Text) || !IsValidTimeString(Ende_Box.Text))
+            if (!UtilityClass.IsValidTimeString(Begin_Box.Text) || !UtilityClass.IsValidTimeString(Ende_Box.Text))
             {
                 MessageBox.Show("Bitte gib eine Zugelassene Zeitspanne ein");
                 return false;
@@ -2043,9 +2124,9 @@ namespace ShiftPlanner
             Schicht.Date = clickedDate;
 
             TimeOnly OutTime = new();
-            Schicht.Zeiten.SchichtStart = GetTimeFromString(Begin_Box.Text,out OutTime);
+            Schicht.Zeiten.SchichtStart = UtilityClass.GetTimeFromString(Begin_Box.Text,out OutTime);
             Schicht.Zeiten.SchichtStartText = OutTime.ToShortTimeString();
-            Schicht.Zeiten.SchichtEnde = GetTimeFromString(Ende_Box.Text, out OutTime);
+            Schicht.Zeiten.SchichtEnde = UtilityClass.GetTimeFromString(Ende_Box.Text, out OutTime);
             Schicht.Zeiten.SchichtSchlussText = OutTime.ToShortTimeString();
             double StundenZahl = Math.Abs(Schicht.Zeiten.SchichtEnde - Schicht.Zeiten.SchichtStart) / 60;
             if (_UseBreakTimes)
@@ -2187,7 +2268,7 @@ namespace ShiftPlanner
             if (GetSchicht(InChanges.LinkedSchichtID) is SchichtInfo SelectedSchicht)
             {
 
-               if(!IsValidTimeString(InChanges.NewStartTime) || !IsValidTimeString(InChanges.NewEndTime))
+               if(!UtilityClass.IsValidTimeString(InChanges.NewStartTime) || !UtilityClass.IsValidTimeString(InChanges.NewEndTime))
                {
 
                     MessageBox.Show("Bitte gib eine gültige Zeitspanne ein.");
@@ -2199,9 +2280,9 @@ namespace ShiftPlanner
                 double BeforeHours = SelectedSchicht.Zeiten.SchichtStunden;
 
                 TimeOnly OutTime = new();
-                SelectedSchicht.Zeiten.SchichtStart = GetTimeFromString(InChanges.NewStartTime, out OutTime);
+                SelectedSchicht.Zeiten.SchichtStart = UtilityClass.GetTimeFromString(InChanges.NewStartTime, out OutTime);
                 SelectedSchicht.Zeiten.SchichtStartText = OutTime.ToShortTimeString();
-                SelectedSchicht.Zeiten.SchichtEnde = GetTimeFromString(InChanges.NewEndTime, out OutTime);
+                SelectedSchicht.Zeiten.SchichtEnde = UtilityClass.GetTimeFromString(InChanges.NewEndTime, out OutTime);
                 SelectedSchicht.Zeiten.SchichtSchlussText = OutTime.ToShortTimeString();
                 double StundenZahl = Math.Abs(SelectedSchicht.Zeiten.SchichtEnde - SelectedSchicht.Zeiten.SchichtStart) / 60;
                 if (_UseBreakTimes)
@@ -3719,7 +3800,6 @@ namespace ShiftPlanner
         public int SLinkedID { get; set; }
 
         public int ELinkedID { get; set; }
-       
     }
 
     //Feiertags Stuff

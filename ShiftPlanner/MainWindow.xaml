@@ -219,8 +219,11 @@
                         </MenuItem>
                     </MenuItem>
 
-                    
-            </Menu>
+                    <MenuItem FontSize="14"  Header="Tools" Background="#2D2D30"  BorderBrush="LightGray" BorderThickness="0,0,1,1" Width="auto" HorizontalAlignment="Left" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" >
+                        <MenuItem Header="Verteile automatisiert Schichten"  Click="OpenAutomator" Background="#1E1E1E"   Foreground="White"/>
+                    </MenuItem>
+
+                </Menu>
             </Border>
         </Border>
 
@@ -806,7 +809,7 @@
 
                     </StackPanel>
 
-                    <TextBlock Grid.Row="1" Text="Version: 1.0.0"
+                    <TextBlock Grid.Row="1" Text="Version: 1.0.1"
                       FontSize="12"
                       Foreground="Gray"
                       VerticalAlignment="Bottom"

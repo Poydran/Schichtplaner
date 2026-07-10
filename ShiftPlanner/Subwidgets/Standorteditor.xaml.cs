@@ -77,29 +77,26 @@ namespace ShiftPlanner.Subwidgets
 
             List<string>? NewSchliessTage = SchliesstagBox.Text.Split(',',';').ToList();
 
-            if (NewSchliessTage != null)
+            if (NewSchliessTage != null && NewSchliessTage.Count > 0) 
             {
                 string DayStrings = "mo,di,mi,do,fr,sa,so";
-                Schliesstage.Text = string.Empty;
-                int index = 0;
                 foreach(string Day in NewSchliessTage)
                 {
-                    if (DayStrings.Contains(Day.ToLower()))
+                    if (string.IsNullOrWhiteSpace(Day)) continue;
+                    if (DayStrings.Contains(Day.ToLower().Trim()))
                     {
-                        Schliesstage.Text += Day;
-                        standortSave.NewSchliessTage.Add(Day.ToLower());
+                        standortSave.NewSchliessTage.Add(Day.ToLower().Trim());
                     }
-                    else if(int.TryParse(Day,out int OutDayInt) && OutDayInt > 0 && OutDayInt <= 31)
+                    else if(int.TryParse(Day.Trim(),out int OutDayInt) && OutDayInt > 0 && OutDayInt <= 31)
                     {
-                        Schliesstage.Text += Day;
                         standortSave.NewSchliessTage.Add(Day);
                     }
                     else if(Day.Contains("-"))
                     {
                         string[] parts = Day.Split('-');
 
-                        int start = int.Parse(parts[0].Trim());
-                        int end = int.Parse(parts[1].Trim());
+                        if (!int.TryParse(parts[0].Trim(), out int start)) return;
+                        if(!int.TryParse(parts[1].Trim(),out int end)) return;
 
                         if(start > end)
                         {
@@ -108,14 +105,9 @@ namespace ShiftPlanner.Subwidgets
                             return;
                         }
 
-                        List<int> numbers = Enumerable
-                            .Range(start, end - start + 1)
-                            .ToList();
-
-                        foreach(int number in numbers)
+                        foreach(int day in Enumerable.Range(start, end - start + 1))
                         {
-                            Schliesstage.Text += Day;
-                            standortSave.NewSchliessTage.Add(number.ToString());
+                            standortSave.NewSchliessTage.Add(day.ToString().Trim());
                         }
                     }
                     else
@@ -124,12 +116,9 @@ namespace ShiftPlanner.Subwidgets
                         Schliesstage.Text = string.Empty;
                         return;
                     }
-
-                    if (index != 0) { Schliesstage.Text += ", "; }
-                    index++;
                 }
             }
-
+            Schliesstage.Text = SchliesstagBox.Text;
             standortSave.SchliesstagString = SchliesstagBox.Text;
 
             standortSave.NewName = StandortNameEdit.Text.Trim();
