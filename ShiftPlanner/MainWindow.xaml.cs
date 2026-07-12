@@ -374,10 +374,47 @@ namespace ShiftPlanner
 
         private void TriggerAutomation(List<DayTemplateData> DTDList)
         {
+            string OutputText = "Ausgabe Log:" + Environment.NewLine;
+            List<EmployeeData> EmployeesInQuestion = new List<EmployeeData>();
+            Dictionary<string, int> EmployeesPerRole = new();
+            foreach (EmployeeData ED in _Mitartbeiter)
+            {
+                if (ED._Standorte.Contains(_ActiveStandortID))
+                {
+
+                    foreach( string role in  ED._VorgeseheneRollen)
+                    {
+
+                        if (EmployeesPerRole.TryGetValue(role, out int count))
+                        {
+                            EmployeesPerRole[role]++;
+                        }
+                        else
+                        {
+                            EmployeesPerRole.Add(role, 1);
+                        }
+                    }
+
+
+                    EmployeesInQuestion.Add(ED);
+                }
+            }
+
+            foreach (DayTemplateData DTD in DTDList)
+            {
+                if (EmployeesPerRole.TryGetValue(DTD.SchichtRolle, out int count))
+                {
+                  DTD.DifficultyWeight = count / DTD.Anzahl;
+
+                }
+            }
+            DTDList = DTDList.OrderBy(Template => Template.DifficultyWeight).ToList();
+
+            List<SchichtInfo> StandortschichtenAtStart = GetShiftsForLocation(_ActiveStandortID);
 
             foreach (KeyValuePair<int, string> kvp in _DayMapping)
             {
-                 List<int> LinkedEmployeeIDs = new();
+    
                 DateTime dateTime = new DateTime(_currentMonth.Year, _currentMonth.Month, kvp.Key);
                 bool TagIsHoliiday = false;
                 if (GetStandort(_ActiveStandortID) is PlanStandortData PSD)
@@ -387,8 +424,6 @@ namespace ShiftPlanner
                     TagIsHoliiday = HolidayService.IsHoliday(dateTime, PSD.Bundesland);
                     if (TagIsHoliiday && PSD.bIsClosedOnHoliday) continue;
                 }
-             
-
 
                 foreach (DayTemplateData DTD in DTDList)
                 {
@@ -415,7 +450,20 @@ namespace ShiftPlanner
                             }
                         }
                         schichtZeit.SchichtStunden = Math.Round(StundenZahl, 2);
-                        for (int i = 0; i < DTD.Anzahl; i++)
+                        int LoopAnzahl = DTD.Anzahl;
+                        foreach(SchichtInfo DayShift in StandortschichtenAtStart)
+                        {
+                            if (DayShift.Date == dateTime && DayShift.SchichtRolle == DTD.SchichtRolle)
+                            {
+                                     LoopAnzahl = Math.Max(0,LoopAnzahl -1);
+                            }
+                        }
+
+
+                        List<EmployeeData> AvailableEmployees = GatherAvailableEmployees(EmployeesInQuestion, DTD, dateTime, schichtZeit);
+                        List<EmployeeAutomation> WeighedEmployees = WeighEmployeesForAutomation(AvailableEmployees,DTD,dateTime,schichtZeit);
+
+                        for (int i = 0; i < LoopAnzahl; i++)
                         {
                             SchichtInfo schichtInfo = new SchichtInfo();
                             schichtInfo.SchichtRolle = DTD.SchichtRolle;
@@ -426,57 +474,108 @@ namespace ShiftPlanner
                             schichtInfo.Date = dateTime;
                             schichtInfo.Notiz = "";
 
-                            foreach (EmployeeData ED in _Mitartbeiter)
+                            foreach (EmployeeAutomation EAD in WeighedEmployees)
                             {
-                                if (LinkedEmployeeIDs.Contains(ED._MitarbeiterID)) continue;
-                                if(ED._Standorte.Contains(_ActiveStandortID) && ED._VorgeseheneRollen.Contains(DTD.SchichtRolle.ToLower()) || !IsDayOff(ED.AbwesendListeNew, kvp.Key))
-                                {
-                                    LinkedEmployeeIDs.Add(ED._MitarbeiterID);
-                                    if (HasMAShiftAtDay(dateTime, ED))
-                                    {
-                                        continue;
-                                    }
-                                    schichtInfo.ELinkedID = ED._MitarbeiterID;
+                            
+                                    schichtInfo.ELinkedID = EAD.Employee._MitarbeiterID;
 
-                                    ED._VerplanteStunden += schichtInfo.Zeiten.SchichtStunden;
-                                    _MitarbeiterWidgetMap.TryGetValue(ED._MitarbeiterID, out Employee? OutEmployee);
+                                    EAD.Employee._VerplanteStunden += schichtInfo.Zeiten.SchichtStunden;
+                                    _MitarbeiterWidgetMap.TryGetValue(EAD.Employee._MitarbeiterID, out Employee? OutEmployee);
                                     if (OutEmployee != null)
                                     {
-                                        OutEmployee.SetHours(ED._VerplanteStunden, ED._ZielStunden);
+                                        OutEmployee.SetHours(EAD.Employee._VerplanteStunden, EAD.Employee._ZielStunden);
                                     }
 
-                                    ED._ZugeteilteSchichten.Add(schichtInfo.SchichtID);
+                                    EAD.Employee._ZugeteilteSchichten.Add(schichtInfo.SchichtID);
 
-
-
-
-
-
+                           
                                     _SchichtIDCounter++;
                                     _Schichten.Add(schichtInfo);
-                                }
+                                    break;
+                                
                             }
+
+
+                           
+                           
                         }
                     }
                 }
             }
 
             SwitchGenerator();
+            MessageBox.Show(OutputText);
         }
 
-        private bool HasMAShiftAtDay(DateTime dateTime, EmployeeData ED)
+        private bool HasMAShiftThisDay(DateTime dateTime, EmployeeData ED)
+        {
+            return ED.TageImEinsatz.Contains(dateTime);
+        }
+
+        private bool HasMAShiftThisDay(DateTime dateTime, EmployeeData ED, out SchichtInfo? OutInfo)
         {
             foreach (int MASchicht in ED._ZugeteilteSchichten)
             {
                 if (GetSchicht(MASchicht) is SchichtInfo MAShift)
                 {
-                    if (MAShift.Date == dateTime) return true;
+                    if (MAShift.Date == dateTime)
+                    {
+                        OutInfo = MAShift;
+                        return true;
+                    }
                 }
             }
-
+            OutInfo = null;
             return false;
         }
 
+        private List<EmployeeData> GatherAvailableEmployees(List<EmployeeData> BaseEmployeeList, DayTemplateData InShiftTemplate, DateTime DateToGatherFor, SchichtZeit InZeiten)
+        {
+            List<EmployeeData> ElegibleEmployees = new List<EmployeeData>();
+
+            foreach (EmployeeData ED in BaseEmployeeList)
+            {
+                if (HasMAShiftThisDay(DateToGatherFor, ED) || IsDayOff(ED.AbwesendListeNew, DateToGatherFor.Day)) continue;
+                if (!ED._VorgeseheneRollen.Contains(InShiftTemplate.SchichtRolle)) continue;
+                if(HasMAShiftThisDay(DateToGatherFor.AddDays(-1),ED, out SchichtInfo? SI))
+                {
+                    DateTime DayBefore = DateToGatherFor;
+                    DayBefore.AddHours((int)(SI.Zeiten.SchichtEnde / 60));
+                    DayBefore.AddMinutes((int)(SI.Zeiten.SchichtEnde % 60));
+                    DateTime CurrentDay = DateToGatherFor.AddDays(-1);
+                    CurrentDay.AddHours((int)(InZeiten.SchichtStart / 60));
+                    CurrentDay.AddMinutes((int)(InZeiten.SchichtStart % 60));
+                    double hours = (CurrentDay - DayBefore).TotalHours;
+                    if (hours < 11) continue; //unterschreitet ruhezeit
+                }
+
+
+                    ElegibleEmployees.Add(ED);  
+            }
+
+            return ElegibleEmployees;
+        }
+
+        private List<EmployeeAutomation> WeighEmployeesForAutomation(List<EmployeeData> BaseEmployeeList, DayTemplateData InShiftTemplate, DateTime DateToGatherFor, SchichtZeit InZeiten)
+        {
+            List<EmployeeAutomation> WeighedEmployees = new List<EmployeeAutomation>();
+
+
+            foreach (EmployeeData ED in BaseEmployeeList)
+            {
+                EmployeeAutomation NewAutoData = new EmployeeAutomation();
+                NewAutoData.Employee = ED;
+            
+
+
+
+                WeighedEmployees.Add(NewAutoData);
+            }
+
+
+            WeighedEmployees = WeighedEmployees.OrderBy(EAD => EAD.Weight).ToList();
+            return WeighedEmployees;
+        }
 
         //Layout
         private bool LeftBorderOpen = true;
@@ -535,9 +634,9 @@ namespace ShiftPlanner
             MonthTitleText.Text = _MonthMapping[_currentMonth.Month] + " " + _currentMonth.Year.ToString();
 
             if (_ActiveStandortID >= 0) SwitchGenerator();
-
             RecalcPlannedHours();
         }
+
         private void NextMonth_Click(object sender, RoutedEventArgs e)
         {
             _currentMonth = _currentMonth.AddMonths(1);
@@ -752,6 +851,20 @@ namespace ShiftPlanner
             return null;
         }
 
+
+        public List<SchichtInfo> GetShiftsForLocation(int InStandortID)
+        {
+            List < SchichtInfo > Standortschichten = new List<SchichtInfo >();
+            foreach (SchichtInfo schicht in _Schichten)
+            {
+                if (schicht.SLinkedID == InStandortID && schicht.Date.Year == _currentMonth.Year && schicht.Date.Month == _currentMonth.Month) Standortschichten.Add(schicht);
+            }
+
+
+            return Standortschichten;
+        }
+
+
         //Mitarbeiter 
         private void AddEmployee_Click(object sender, RoutedEventArgs e)
         {
@@ -922,6 +1035,7 @@ namespace ShiftPlanner
             foreach(KalenderTag KT in _KalenderTage)
             {
 
+                KT.ActiveInfoBorder.Background = Brushes.Black;
                 string? Type;
                 string? TypeAB;
                 bool bFoundDay = IsDayOff(InEmployee.AbwesendListeNew, KT.DayData._KalenderDatum.Day,out Type,out TypeAB);
@@ -943,6 +1057,22 @@ namespace ShiftPlanner
 
                         continue;
                 }
+              
+                if (IsDayOff(InEmployee.Einsatzwuensche, KT.DayData._KalenderDatum.Day))
+                {
+                    KT.ActiveInfoBorder.Visibility = Visibility.Visible;
+                    KT.ActiveInfoBorder.Background = Brushes.GreenYellow;
+                    KT.ActiveMAInfo.Text = "Einsatzwunsch";
+
+                }
+
+                if (IsDayOff(InEmployee.FreitagsWuensche, KT.DayData._KalenderDatum.Day))
+                {
+                    KT.ActiveInfoBorder.Visibility = Visibility.Visible;
+                    KT.ActiveInfoBorder.Background = Brushes.Red;
+                    KT.ActiveMAInfo.Text = "Freizeitwunsch";
+                }
+
 
                 foreach (int SchichtID in InEmployee._ZugeteilteSchichten)
                 {
@@ -978,6 +1108,7 @@ namespace ShiftPlanner
                         }
 
                         KT.ActiveMAInfo.Text = AInfo;
+
                     }
                 }
             }
@@ -1008,13 +1139,13 @@ namespace ShiftPlanner
 
         }
 
-        private bool IsDayOff(List<Abwesenheit> Abwesenheiten, int Date)
+        private bool IsDayOff(List<TagesWunsch> Abwesenheiten, int Date)
         {
 
             string Day = Date.ToString();
             string DayAbbreviation = _DayMapping[Date].ToLower();
             bool bFoundDay = false;
-            foreach (Abwesenheit EPDaysOff in Abwesenheiten)
+            foreach (TagesWunsch EPDaysOff in Abwesenheiten)
             {
                 if (EPDaysOff.Tag == Day || EPDaysOff.Tag == DayAbbreviation)
                 {
@@ -1026,7 +1157,7 @@ namespace ShiftPlanner
             return bFoundDay;
         }
 
-        private bool IsDayOff(List<Abwesenheit> Abwesenheiten, int Date, out string? Type, out string? TypeAbbreviation)
+        private bool IsDayOff(List<TagesWunsch> Abwesenheiten, int Date, out string? Type, out string? TypeAbbreviation)
         {
 
             string Day = Date.ToString();
@@ -1034,7 +1165,7 @@ namespace ShiftPlanner
             bool bFoundDay = false;
             Type = null;
             TypeAbbreviation = null;
-            foreach (Abwesenheit EPDaysOff in Abwesenheiten)
+            foreach (TagesWunsch EPDaysOff in Abwesenheiten)
             {
                 if (EPDaysOff.Tag == Day || EPDaysOff.Tag == DayAbbreviation)
                 {
@@ -1065,6 +1196,7 @@ namespace ShiftPlanner
                     KT.RootBorder.Background = Brushes.Transparent;
                 }
                 KT.ActiveInfoBorder.Visibility = Visibility.Collapsed;
+                KT.ActiveInfoBorder.Background = Brushes.Black;
 
 
             }
@@ -1127,6 +1259,12 @@ namespace ShiftPlanner
                 _MitarbeiterInfoCache.MyColorPicker.SelectedColor = (System.Windows.Media.Color)ColorConverter.ConvertFromString(Arbeiter.ColorHex);
                 _MitarbeiterInfoCache.AbwesendeTage.Text = Arbeiter.AbwesendString;
                 _MitarbeiterInfoCache.abwesendBox.Text = Arbeiter.AbwesendString;
+                _MitarbeiterInfoCache.FreizeitBox.Text = Arbeiter.FreitagWunschString;
+                _MitarbeiterInfoCache.FreizeitTage.Text = Arbeiter.FreitagWunschString;
+                _MitarbeiterInfoCache.EinsatzBox.Text = Arbeiter.EinsatzwunschString;
+                _MitarbeiterInfoCache.EinsatzTage.Text = Arbeiter.EinsatzwunschString;
+                _MitarbeiterInfoCache.TageAmStueck.Text = Arbeiter.MaxArbeitsTageAmStueck.ToString();
+                _MitarbeiterInfoCache.TageAmStueckBox.Text = Arbeiter.MaxArbeitsTageAmStueck.ToString();
                 string STText = "";
                 int Index = 0;
                 foreach (PlanStandortData Ort in _Standorte)
@@ -1252,6 +1390,8 @@ namespace ShiftPlanner
                     _MitarbeiterInfoCache.RText.Text = RText;
                     _MitarbeiterInfoCache.MAName.Text = InChanges.NewName;
                     _MitarbeiterInfoCache.ZielStundenText.Text = InChanges.NeueZielStunden.ToString();
+                    _MitarbeiterInfoCache.TageAmStueck.Text = InChanges.FolgeTage.ToString();
+
                 }
 
                 foreach (var item in Arbeiter._Standorte)
@@ -1285,9 +1425,14 @@ namespace ShiftPlanner
                 }
 
                 Arbeiter.AbwesendString = InChanges.AbwesendString;
+                Arbeiter.EinsatzwunschString = InChanges.EinsatzwunschString;
+                Arbeiter.FreitagWunschString = InChanges.FreitagWunschString;
                 Arbeiter.AbwesendListeNew = InChanges.AbwesendListe;
+                Arbeiter.Einsatzwuensche = InChanges.Einsatzwuensche;
+                Arbeiter.FreitagsWuensche = InChanges.FreitagsWuensche;
+                Arbeiter.MaxArbeitsTageAmStueck = InChanges.FolgeTage;
 
-                if (_ActiveEmployee != null && Arbeiter._MitarbeiterID == _ActiveEmployee._MitarbeiterID && Arbeiter.AbwesendListeNew.Count != 0)
+                if (_ActiveEmployee != null && Arbeiter._MitarbeiterID == _ActiveEmployee._MitarbeiterID)
                 {
                     SwitchGenerator();
                 }
@@ -1337,6 +1482,22 @@ namespace ShiftPlanner
                 if (item._MitarbeiterID == InMAID) return item;
             }
             return null;
+        }
+        private void RepopulateTageImEinsatz()
+        {
+            foreach (EmployeeData ED in _Mitartbeiter)
+            {
+                ED.TageImEinsatz.Clear();
+                foreach (int id in ED._ZugeteilteSchichten)
+                {
+                    if (GetSchicht(id) is SchichtInfo SI)
+                    {
+                      
+                            ED.TageImEinsatz.Add(SI.Date);
+                        
+                    }
+                }
+            }
         }
 
 
@@ -1962,8 +2123,45 @@ namespace ShiftPlanner
                 return;
             }
             if(!IsRoleAvailableByEmployee()) return;
-            DateTime clickedDate = InDay.DayData._KalenderDatum.Date;
-            SchichtInfo Schicht = new SchichtInfo();
+            if (_ActiveEmployee == null) return;
+            DateTime clickedDate = InDay.DayData._KalenderDatum;
+            int concurrentDays = 1;
+            for(int i = 1; i <_ActiveEmployee.MaxArbeitsTageAmStueck+1;i++)
+            {
+                if (_ActiveEmployee.TageImEinsatz.Contains(clickedDate.AddDays(-i)))
+                {
+                    concurrentDays++;
+                }
+                else break;
+            }
+            for (int u = 1; u < _ActiveEmployee.MaxArbeitsTageAmStueck+1; u++)
+            {
+                    if (_ActiveEmployee.TageImEinsatz.Contains(clickedDate.AddDays(u)))
+                    {
+                        concurrentDays++;
+                    }
+                    else break;
+            }
+             
+                if (concurrentDays > _ActiveEmployee.MaxArbeitsTageAmStueck)
+                {
+                    BestätigungsWidget window = new BestätigungsWidget();
+                    window.Owner = this;
+                    string InfoText = $"Der Mitarbeiter überschreitet die maximale Anzahl an Einsätzen am Stück." + Environment.NewLine + "Soll die Schicht trotzdem zugeteilt werden?";
+                    window.SetInfoText(InfoText);
+                    bool? result = window.ShowDialog();
+
+                    if (result != true)
+                    {
+                        return;
+                    }
+
+                }
+
+            
+
+
+                SchichtInfo Schicht = new SchichtInfo();
             AssigneNewShift(clickedDate, Schicht);
             SwitchGenerator();
             UnsavedChanges = true;
@@ -1977,7 +2175,40 @@ namespace ShiftPlanner
             }
 
             if (!IsRoleAvailableByEmployee()) return;
-            DateTime clickedDate = InDay.DayData._KalenderDatum.Date;
+            DateTime clickedDate = InDay.DayData._KalenderDatum;
+            int concurrentDays = 1;
+            if (_ActiveEmployee == null) return;
+            for (int i = 1; i < _ActiveEmployee.MaxArbeitsTageAmStueck + 1; i++)
+            {
+                if (_ActiveEmployee.TageImEinsatz.Contains(clickedDate.AddDays(-i)))
+                {
+                    concurrentDays++;
+                }
+                else break;
+            }
+            for (int u = 1; u < _ActiveEmployee.MaxArbeitsTageAmStueck + 1; u++)
+            {
+                if (_ActiveEmployee.TageImEinsatz.Contains(clickedDate.AddDays(u)))
+                {
+                    concurrentDays++;
+                }
+                else break;
+            }
+
+            if (concurrentDays > _ActiveEmployee.MaxArbeitsTageAmStueck)
+            {
+                BestätigungsWidget window = new BestätigungsWidget();
+                window.Owner = this;
+                string InfoText = $"Der Mitarbeiter überschreitet die maximale Anzahl an Einsätzen am Stück." + Environment.NewLine + "Soll die Schicht trotzdem zugeteilt werden?";
+                window.SetInfoText(InfoText);
+                bool? result = window.ShowDialog();
+
+                if (result != true)
+                {
+                    return;
+                }
+
+            }
             SchichtInfo Schicht = new SchichtInfo();
             AssigneNewShift(clickedDate, Schicht);
     
@@ -2166,7 +2397,7 @@ namespace ShiftPlanner
             {
                 OutEmployee.SetHours(_ActiveEmployee._VerplanteStunden, _ActiveEmployee._ZielStunden);
             }
-
+            _ActiveEmployee.TageImEinsatz.Add(clickedDate);
             _ActiveEmployee._ZugeteilteSchichten.Add(Schicht.SchichtID);
             _Schichten.Add(Schicht);
         }
@@ -2362,7 +2593,8 @@ namespace ShiftPlanner
                             _MitarbeiterInfoCache.SchichtTracker[SelectedSchicht.SLinkedID]--;
                         }
                         _MitarbeiterInfoCache.PlannedStundenText.Text = $"Verplante Stunden:  {Arbeiter._VerplanteStunden.ToString()}";
-                      
+                        Arbeiter._ZugeteilteSchichten.Remove(_InSchichtID);
+                        Arbeiter.TageImEinsatz.Remove(SelectedSchicht.Date);
                         return true;
                     }
                 }
@@ -2378,11 +2610,13 @@ namespace ShiftPlanner
                     if (GetSchicht(LSchichtID) is SchichtInfo SelectedSchicht)
                     {
                   
-                            Arbeiter._ZugeteilteSchichten.Remove(LSchichtID);
-                            _Schichten.Remove(SelectedSchicht);
+                        Arbeiter._ZugeteilteSchichten.Remove(LSchichtID);
+                        Arbeiter.TageImEinsatz.Remove(SelectedSchicht.Date);
+                          
 
-                            Arbeiter._VerplanteStunden -= SelectedSchicht.Zeiten.SchichtStunden;
-               
+                        Arbeiter._VerplanteStunden -= SelectedSchicht.Zeiten.SchichtStunden;
+                        _Schichten.Remove(SelectedSchicht);
+
                     }
                 }
 
@@ -2550,18 +2784,6 @@ namespace ShiftPlanner
                 //Restore Mitarbeiter
                 _MitarbeiterIDCounter = saveData.MitarbeiterIDCounter;
 
-                foreach(EmployeeData ED in saveData.SD_Employees)
-                {
-                    if (ED.AbwesendListe.Count > 0)
-                    {
-                        foreach (string Day in ED.AbwesendListe)
-                        {
-                            ED.AbwesendListeNew.Add(new Abwesenheit { Tag = Day, Typ = "" });
-                        }
-                        ED.AbwesendListe.Clear();
-                    }
-                }
-
                 _Mitartbeiter = saveData.SD_Employees;
                 _MitarbeiterWidgetMap.Clear();
                 _ActiveEmployee = null;
@@ -2583,6 +2805,8 @@ namespace ShiftPlanner
                 }
                 SortierMitarbeiter(Sortierungen);
 
+                //Compatability Load for 1.0.1
+                RepopulateTageImEinsatz();
                 //Set Active Standort
                 if (_StandortWidgetMap.TryGetValue(_ActiveStandortID,out PlanStandort? PST))
                 {
@@ -2598,7 +2822,6 @@ namespace ShiftPlanner
                 ExportFont.Header = $"Aktuelle Größe: {_ExportSizePDFST}";
                 _ExportSizePDFPersonal = saveData.SD_FontSizeMA;
                 ExportFontMA.Header = $"Aktuelle Größe: {_ExportSizePDFPersonal}";
-                // FileNameText.Text = _savefile;
                 UnsavedChanges = false;
             }
         }
@@ -3518,31 +3741,7 @@ namespace ShiftPlanner
 
                                                 }
 
-                                                string? Type;
-                                                string? TypeAB;
-                                                if (_ShowOutOfOfficeReason && IsDayOff(EP.AbwesendListeNew,Day._TagesDatum.Day,out Type, out TypeAB))
-                                                { 
-                                                    string SetString = Environment.NewLine;
-                                                    if(!string.IsNullOrWhiteSpace(Type))
-                                                    {
-                                                        if (!string.IsNullOrWhiteSpace(TypeAB))
-                                                        {
-                                                            SetString += TypeAB.ToString();
-                                                            bUseLegend = true;
-                                                            if(!abwesenheitsKuerzel.ContainsKey(Type))
-                                                            { abwesenheitsKuerzel.Add(Type, TypeAB); }
-                                                            
-
-                                                        }
-                                                        else
-                                                        {
-                                                            SetString += Type.ToString();
-                                                        }
-                                                    }
-                                                    table.Cell().Element(x =>
-                                                            CellStyle(x, CellRightThickness, CellLeftThickness)).Text(SetString).FontSize(_ExportSizePDFST).AlignCenter().Bold();
-                                                }
-                                                else if (EP._ZugeteilteSchichten.Intersect(Day.schichtIDs).Any())
+                                                if (EP._ZugeteilteSchichten.Intersect(Day.schichtIDs).Any())
                                                 {
                                                     int commonValue = EP._ZugeteilteSchichten.Intersect(Day.schichtIDs).FirstOrDefault();
 
@@ -3597,6 +3796,59 @@ namespace ShiftPlanner
                                                             CellStyle(x, CellRightThickness, CellLeftThickness)).Text("").FontSize(_ExportSizePDFST);
                                                     }
 
+                                                }
+                                                else if (_ShowOutOfOfficeReason)
+                                                {
+                                                    string SetString = Environment.NewLine;
+                              
+                                                    if(IsDayOff(EP.AbwesendListeNew, Day._TagesDatum.Day, out string? Type, out string? TypeAB))
+                                                    {
+                                                        if (!string.IsNullOrWhiteSpace(Type))
+                                                        {
+                                                            if (!string.IsNullOrWhiteSpace(TypeAB))
+                                                            {
+                                                                SetString += TypeAB.ToString();
+                                                                bUseLegend = true;
+                                                                if (!abwesenheitsKuerzel.ContainsKey(Type))
+                                                                { abwesenheitsKuerzel.Add(Type, TypeAB); }
+
+
+                                                            }
+                                                            else
+                                                            {
+                                                                SetString += Type.ToString();
+                                                            }
+                                                        }
+
+                                                    }
+                                                    else if (IsDayOff(EP.FreitagsWuensche, Day._TagesDatum.Day, out string? TypeFW, out string? TypeFWAB))
+                                                    {
+                                                        if (!string.IsNullOrWhiteSpace(TypeFW))
+                                                        {
+
+                                                            if (!string.IsNullOrWhiteSpace(TypeFWAB))
+                                                            {
+                                                                SetString += TypeFWAB.ToString();
+                                                                bUseLegend = true;
+                                                                if (!abwesenheitsKuerzel.ContainsKey(TypeFW))
+                                                                { abwesenheitsKuerzel.Add(TypeFW, TypeFWAB); }
+
+
+                                                            }
+                                                            else
+                                                            {
+                                                                SetString += TypeFW.ToString();
+                                                            }
+
+                                                        }
+                                                        else
+                                                        {
+                                                            SetString += "FW";
+                                                        }
+                                                    }
+
+                                                    table.Cell().Element(x =>
+                                                            CellStyle(x, CellRightThickness, CellLeftThickness)).Text(SetString).FontSize(_ExportSizePDFST).AlignCenter().Bold();
                                                 }
                                                 else
                                                 {
@@ -3795,11 +4047,17 @@ namespace ShiftPlanner
         public DateTime Date { get; set; }
         public bool bIsHoliday { get; set; } = false;
         public SchichtZeit Zeiten { get; set; } = new();
-        public string SchichtRolle { get; set; } = "Kasse";
-        public string Notiz { get; set; } = "N";
-        public int SLinkedID { get; set; }
+        public string SchichtRolle { get; set; } = "";
+        public string Notiz { get; set; } = "";
+        public int SLinkedID { get; set; } = -1;
 
-        public int ELinkedID { get; set; }
+        public int ELinkedID { get; set; } = -1;
+    }
+
+    public class EmployeeAutomation
+    {
+        public int Weight { get; set; }
+        public EmployeeData Employee { get; set; } = new();
     }
 
     //Feiertags Stuff

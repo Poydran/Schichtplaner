@@ -341,7 +341,7 @@
 
                 <Grid Margin="0,10,0,0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition  Width="100"/>
+                        <ColumnDefinition  Width="110"/>
                         <ColumnDefinition  Width="auto"/>
                         <ColumnDefinition  Width="*"/>
                     </Grid.ColumnDefinitions>
@@ -351,7 +351,7 @@
                             Text="Abwesend: "
                             Foreground="White"
                             FontSize="16"
-                        />
+                     />
 
                     <TextBlock
                        Grid.Column="1"
@@ -361,7 +361,7 @@
                        FontSize="16"
                        Visibility="Visible"
                      />
-
+                    
                     <TextBox
                           Grid.Column="1"
                           x:Name="abwesendBox"
@@ -419,44 +419,162 @@
                     </Border>
                     
                 </Grid>
-                
-                <Grid Margin="0,10,0,0" Visibility="Collapsed">
+
+                <Grid Margin="0,10,0,0">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition  Width="100"/>
+                        <ColumnDefinition  Width="110"/>
+                        <ColumnDefinition  Width="auto" MinWidth="140"/>
+                        <ColumnDefinition  Width="110"/>
                         <ColumnDefinition  Width="auto"/>
                     </Grid.ColumnDefinitions>
 
                     <TextBlock
-                            Grid.Column="0"
-                            Text="Urlaub: "
-                            Foreground="White"
-                            FontSize="16"
+                     Grid.Column="0"
+                     Text="Einsatzwunsch: "
+                     Foreground="White"
+                     FontSize="16"
+                    />
+
+                    <TextBlock
+                        Grid.Column="1"
+                        x:Name="EinsatzTage"
+                        Text=""
+                        Foreground="White"
+                        FontSize="16"
+                        Visibility="Visible"
+                      />
+
+                    <TextBox
+                       Grid.Column="1"
+                       x:Name="EinsatzBox"
+                       Text="Sa,So,10-14,31"
+                       FontSize="16"
+                        MinWidth="50"
+                        CaretBrush="White"
+                       Margin="0,0,50,0"
+                       Foreground="White"
+                     BorderBrush="LightGray"
+                     Visibility="Collapsed"
+                        HorizontalAlignment="Left"
+                      Background="Transparent"
+            >
+                        <TextBox.Style>
+                            <Style TargetType="TextBox">
+                                <Setter Property="BorderBrush" Value="LightGray"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="BorderBrush" Value="White"/>
+                                    </Trigger>
+                                    <Trigger Property="IsKeyboardFocused" Value="True">
+                                        <Setter Property="BorderBrush" Value="White"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+
+                    <TextBlock
+                         Grid.Column="2"
+                         Text="Freizeitwunsch: "
+                         Foreground="White"
+                         FontSize="16"
                         />
 
                     <TextBlock
-                           Grid.Column="1"
-                           x:Name="UrlaubsTage"
-                           Text=""
-                           Foreground="White"
-                           FontSize="16"
-                           Visibility="Visible"
-                         />
+                        Grid.Column="3"
+                        x:Name="FreizeitTage"
+                        Text=""
+                        Foreground="White"
+                        FontSize="16"
+                        Visibility="Visible"
+                      />
 
                     <TextBox
-                          Grid.Column="1"
-                          x:Name="UrlaubsBox"
-                          Text=""
-                          FontSize="16"
-                           MinWidth="50"
-                           CaretBrush="White"
-                          Margin="0,0,50,0"
-                          Foreground="White"
-                        BorderBrush="LightGray"
-                        Visibility="Collapsed"
-                           HorizontalAlignment="Left"
-                         Background="Transparent"
-                       />
+                       Grid.Column="3"
+                       x:Name="FreizeitBox"
+                       Text="Sa,So,10-14,31"
+                       FontSize="16"
+                        MinWidth="50"
+                        CaretBrush="White"
+                       Margin="0,0,50,0"
+                       Foreground="White"
+                     BorderBrush="LightGray"
+                     Visibility="Collapsed"
+                        HorizontalAlignment="Left"
+                      Background="Transparent"
+>
+                        <TextBox.Style>
+                            <Style TargetType="TextBox">
+                                <Setter Property="BorderBrush" Value="LightGray"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="BorderBrush" Value="White"/>
+                                    </Trigger>
+                                    <Trigger Property="IsKeyboardFocused" Value="True">
+                                        <Setter Property="BorderBrush" Value="White"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
                 </Grid>
+
+                <Grid Margin="0,10,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition  Width="300"/>
+                        <ColumnDefinition  Width="auto"/>
+                        <ColumnDefinition  Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBlock
+                           Grid.Column="0"
+                           Text="Max. aufeinanderfolgende Arbeitstage:"
+                           Foreground="White"
+                           FontSize="16"
+                    />
+
+                    <TextBlock
+                          Grid.Column="1"
+                          x:Name="TageAmStueck"
+                          Text="5"
+                          Foreground="White"
+                          FontSize="16"
+                          Visibility="Visible"
+                        />
+
+                    <TextBox
+                         Grid.Column="1"
+                         x:Name="TageAmStueckBox"
+                         Text="Sa,So,10-14,31"
+                         FontSize="16"
+                          MinWidth="50"
+                          CaretBrush="White"
+                         Margin="0,0,50,0"
+                         Foreground="White"
+                       BorderBrush="LightGray"
+                       Visibility="Collapsed"
+                          HorizontalAlignment="Left"
+                        Background="Transparent"
+                      >
+                        <TextBox.Style>
+                            <Style TargetType="TextBox">
+                                <Setter Property="BorderBrush" Value="LightGray"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="BorderBrush" Value="White"/>
+                                    </Trigger>
+                                    <Trigger Property="IsKeyboardFocused" Value="True">
+                                        <Setter Property="BorderBrush" Value="White"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+
+                </Grid>
+
+
+
             </StackPanel>
             <TextBlock
                   Text="Schichten: "

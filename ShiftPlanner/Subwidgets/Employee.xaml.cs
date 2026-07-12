@@ -109,8 +109,14 @@ namespace ShiftPlanner.Subwidgets
         public bool IstSelektiert { get; set; } = false;
 
         public string AbwesendString { get; set; } = "";
-        public List<Abwesenheit> AbwesendListeNew { get; set; } = new();
-        public List<string> AbwesendListe { get; set; } = new();
+        public List<TagesWunsch> AbwesendListeNew { get; set; } = new();
+        public string EinsatzwunschString { get; set; } = "";
+        public List<TagesWunsch> Einsatzwuensche { get; set; } = new();
+        public string FreitagWunschString { get; set; } = "";
+        public List<TagesWunsch> FreitagsWuensche { get; set; } = new();
+
+        public List<DateTime> TageImEinsatz = new();
+        public int MaxArbeitsTageAmStueck { get; set; } = 5;
 
         public void SetzeNeuenNamen(String InName)
         {

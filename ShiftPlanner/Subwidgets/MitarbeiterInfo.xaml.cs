@@ -98,7 +98,14 @@ namespace ShiftPlanner.Subwidgets
                 return;
             }
 
-            if(MAName.Text.Trim() != MANameEdit.Text.Trim()) ShouldRedrawCalendar = true;
+            int FolgeTage = 5;
+            if (int.TryParse(TageAmStueckBox.Text, out FolgeTage) && FolgeTage <= 0)
+            {
+                MessageBox.Show("Bitte gib eine gültige Tageszahl an.");
+                return;
+            }
+
+            if (MAName.Text.Trim() != MANameEdit.Text.Trim()) ShouldRedrawCalendar = true;
             MASaveChanges NewSave = new MASaveChanges();
             NewSave.MAToChange = MAID;
             NewSave.NewName = MANameEdit.Text.Trim();
@@ -106,16 +113,17 @@ namespace ShiftPlanner.Subwidgets
             {
                 NewSave.NewRoles.Add(item.ToString()!);
             }
-            
+
             NewSave.NeueZielStunden = Stunden;
+            NewSave.FolgeTage = FolgeTage;
             foreach (var item in Locations.SelectedItems)
             {
                 NewSave.NeueStandorte.Add(item.ToString()!);
                 NewSave.NeueStandortIDs.Add(OrtCache[item.ToString()!]);
             }
 
-            if(ColorCache != MyColorPicker.SelectedColor) ShouldRedrawCalendar = true;
-            if(MyColorPicker.SelectedColor != null) NewSave.NewColorHex = MyColorPicker.SelectedColor.Value.ToString();
+            if (ColorCache != MyColorPicker.SelectedColor) ShouldRedrawCalendar = true;
+            if (MyColorPicker.SelectedColor != null) NewSave.NewColorHex = MyColorPicker.SelectedColor.Value.ToString();
 
 
             foreach (var Litem in LocationsBeForeEdit)
@@ -138,7 +146,7 @@ namespace ShiftPlanner.Subwidgets
                             List<int> IDsToRemove = new List<int>();
 
                             RemoveSchichten(LID, IDsToRemove, RolePanel);
-                    
+
 
                             SchichtTracker.Remove(LID);
                             ShouldRedrawCalendar = true;
@@ -150,15 +158,59 @@ namespace ShiftPlanner.Subwidgets
                         }
                     }
 
-                } 
+                }
             }
 
 
             List<string>? NewSchliessTage = abwesendBox.Text.Split(',', ';').ToList();
-            if (NewSchliessTage != null && NewSchliessTage.Count > 0)
+            if (!FilterTagesBoxen(NewSave.AbwesendListe, NewSave.AbwesendString, NewSchliessTage)) return;
+            AbwesendeTage.Text = abwesendBox.Text;
+            List<string>? EinsatzListe = EinsatzBox.Text.Split(',', ';').ToList();
+            if (!FilterTagesBoxen(NewSave.Einsatzwuensche, NewSave.EinsatzwunschString, EinsatzListe)) return;
+            EinsatzTage.Text = EinsatzBox.Text;
+            List<string>? FreiWunschListe = FreizeitBox.Text.Split(',', ';').ToList();
+            if (!FilterTagesBoxen(NewSave.FreitagsWuensche, NewSave.FreitagWunschString, FreiWunschListe)) return;
+            FreizeitTage.Text = FreizeitBox.Text;
+
+            SaveMAChanges?.Invoke(NewSave);
+
+            EditButton.Visibility = Visibility.Visible;
+            SpeicherButton.Visibility = Visibility.Collapsed;
+
+            SchichtStandorte.Visibility = Visibility.Visible;
+            Locations.Visibility = Visibility.Collapsed;
+
+            ZielStundenText.Visibility = Visibility.Visible;
+            ZielStundenBox.Visibility = Visibility.Collapsed;
+
+            MAName.Visibility = Visibility.Visible;
+            MANameEdit.Visibility = Visibility.Collapsed;
+
+            RText.Visibility = Visibility.Visible;
+            RoleSelection.Visibility = Visibility.Collapsed;
+            AbwesendeTage.Visibility = Visibility.Visible;
+            abwesendBox.Visibility = Visibility.Collapsed;
+            EinsatzTage.Visibility = Visibility.Visible;
+            EinsatzBox.Visibility = Visibility.Collapsed;
+            FreizeitTage.Visibility = Visibility.Visible;
+            FreizeitBox.Visibility = Visibility.Collapsed;
+            TageAmStueck.Visibility = Visibility.Visible;
+            TageAmStueckBox.Visibility = Visibility.Collapsed;
+            AbwesenheitsTooltip.Visibility = Visibility.Collapsed;
+            DeleteShifts.Visibility = Visibility.Collapsed;
+            ExportMAPDF.Visibility = Visibility.Visible;
+
+            MyColorPicker.IsEnabled = false;
+
+    
+        }
+
+        private bool FilterTagesBoxen(List<TagesWunsch> WunschListe, string WunschString, List<string> TagesListe)
+        {
+            if (TagesListe != null && TagesListe.Count > 0)
             {
                 string DayStrings = "mo,di,mi,do,fr,sa,so";
-                foreach (string Day in NewSchliessTage)
+                foreach (string Day in TagesListe)
                 {
                     if (string.IsNullOrWhiteSpace(Day)) continue;
                     var match = Regex.Match(Day, @"^([^(]+)(?:\((.*)\))?$");
@@ -187,23 +239,23 @@ namespace ShiftPlanner.Subwidgets
                         {
                             System.Windows.MessageBox.Show("Bitte gib eine gültige Abwesenheitsspanne ein.");
 
-                            return;
+                            return false;
                         }
 
                         foreach (int day in Enumerable.Range(start, end - start + 1))
                         {
-                            Abwesenheit Neueabwesenheit = new();
+                            TagesWunsch Neueabwesenheit = new();
                             Neueabwesenheit.Typ = type;
                             Neueabwesenheit.Tag = day.ToString();
                             Neueabwesenheit.TypAbbreviation = typeAB;
-                            NewSave.AbwesendListe.Add(Neueabwesenheit);
+                            WunschListe.Add(Neueabwesenheit);
                         }
                     }
                     else if (match.Success)
                     {
                         string DayString = match.Groups[1].Value.Trim().ToLower();
                         var AbrreviationMatch = Regex.Match(match.Groups[2].Value.Trim(), @"^(.+?)\s*[\(\[\{](.*?)[\)\]\}]");
-                        Abwesenheit Neueabwesenheit = new();
+                        TagesWunsch Neueabwesenheit = new();
                         if (AbrreviationMatch.Success)
                         {
                             Neueabwesenheit.Typ = AbrreviationMatch.Groups[1].Value.Trim();
@@ -225,52 +277,25 @@ namespace ShiftPlanner.Subwidgets
                         else
                         {
                             System.Windows.MessageBox.Show("Bitte gib einen gültigen Wert an.");
-                            return;
+                            return false;
                         }
-                        NewSave.AbwesendListe.Add(Neueabwesenheit);
+                        WunschListe.Add(Neueabwesenheit);
                     }
-                    
                     else
                     {
                         System.Windows.MessageBox.Show("Bitte gib einen gültigen Wert an.");
 
-                        return;
+                        return false;
                     }
-               
+
                 }
 
-                AbwesendeTage.Text = abwesendBox.Text;
-                NewSave.AbwesendString = abwesendBox.Text;
+                WunschString = abwesendBox.Text;
             }
 
-            SaveMAChanges?.Invoke(NewSave); 
-
-            EditButton.Visibility = Visibility.Visible;
-            SpeicherButton.Visibility = Visibility.Collapsed;
-
-            SchichtStandorte.Visibility = Visibility.Visible;
-            Locations.Visibility = Visibility.Collapsed;
-
-            ZielStundenText.Visibility = Visibility.Visible;
-            ZielStundenBox.Visibility = Visibility.Collapsed;
-
-            MAName.Visibility = Visibility.Visible;
-            MANameEdit.Visibility = Visibility.Collapsed;
-
-            RText.Visibility = Visibility.Visible;
-            RoleSelection.Visibility = Visibility.Collapsed;
-            AbwesendeTage.Visibility = Visibility.Visible;
-            abwesendBox.Visibility = Visibility.Collapsed;
-            UrlaubsTage.Visibility = Visibility.Visible;
-            UrlaubsBox.Visibility = Visibility.Collapsed;
-            AbwesenheitsTooltip.Visibility = Visibility.Collapsed;
-            DeleteShifts.Visibility = Visibility.Collapsed;
-            ExportMAPDF.Visibility = Visibility.Visible;
-
-            MyColorPicker.IsEnabled = false;
-
-            DialogResult = true;
+            return true;
         }
+
         private void ExportMA(object sender, RoutedEventArgs e)
         {
             ErstelleExport?.Invoke(MAID);   
@@ -327,9 +352,13 @@ namespace ShiftPlanner.Subwidgets
             AbwesendeTage.Visibility = Visibility.Collapsed;
             abwesendBox.Visibility = Visibility.Visible;
 
-            UrlaubsTage.Visibility = Visibility.Collapsed;
-            UrlaubsBox.Visibility = Visibility.Visible;
+            EinsatzTage.Visibility = Visibility.Collapsed;
+            EinsatzBox.Visibility = Visibility.Visible;
+            FreizeitTage.Visibility = Visibility.Collapsed;
+            FreizeitBox.Visibility = Visibility.Visible;
 
+            TageAmStueck.Visibility = Visibility.Collapsed;
+            TageAmStueckBox.Visibility = Visibility.Visible;
             DeleteShifts.Visibility = Visibility.Visible;
             ExportMAPDF.Visibility = Visibility.Collapsed;
 
@@ -362,12 +391,18 @@ namespace ShiftPlanner.Subwidgets
         public double NeueZielStunden = 0;
 
         public string AbwesendString { get; set; } = "";
-        public List<Abwesenheit> AbwesendListe { get; set; } = new();
+        public List<TagesWunsch> AbwesendListe { get; set; } = new();
 
+        public string EinsatzwunschString { get; set; } = "";
+        public List<TagesWunsch> Einsatzwuensche { get; set; } = new();
 
+        public string FreitagWunschString { get; set; } = "";
+        public List<TagesWunsch> FreitagsWuensche { get; set; } = new();
+
+        public int FolgeTage { get; set; }
     }
 
-    public class Abwesenheit
+    public class TagesWunsch
     {
         public string Tag { get; set; } = "";
         public string Typ { get; set; } = "";
