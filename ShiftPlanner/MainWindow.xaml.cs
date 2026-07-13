@@ -421,7 +421,21 @@ namespace ShiftPlanner
                 schichtZeit.SchichtStartText = OutTime.ToShortTimeString();
                 schichtZeit.SchichtEnde = UtilityClass.GetTimeFromString(DTD.SchichtSchlussText, out OutTime);
                 schichtZeit.SchichtSchlussText = OutTime.ToShortTimeString();
-                double StundenZahl = Math.Abs(schichtZeit.SchichtEnde - schichtZeit.SchichtStart) / 60;
+                DateTime StartTime = _currentMonth.Date;
+                StartTime = StartTime.AddHours((int)(schichtZeit.SchichtStart / 60));
+                StartTime = StartTime.AddMinutes((int)(schichtZeit.SchichtStart % 60));
+                DateTime EndTime = _currentMonth.Date;
+                EndTime = EndTime.AddHours((int)(schichtZeit.SchichtEnde / 60));
+                EndTime = EndTime.AddMinutes((int)(schichtZeit.SchichtEnde % 60));
+                if (schichtZeit.SchichtEnde < schichtZeit.SchichtStart)
+                {
+                    EndTime = EndTime.AddDays(1);
+                    schichtZeit.bPlusOneDay = true;
+                }
+                //OutShiftTime.SchichtEndDate = EndTime;
+               // OutShiftTime.SchichtStartDate = StartTime;
+               double StundenZahl = (EndTime - StartTime).TotalHours;
+
                 if (_UseBreakTimes)
                 {
                     if (StundenZahl > 9)
@@ -438,6 +452,7 @@ namespace ShiftPlanner
                 schichtZeit.SchichtStunden = Math.Round(StundenZahl, 2);
 
                 DTD.DifficultyWeight += schichtZeit.SchichtStunden / 8;
+                DTD.Zeiten = schichtZeit;
             }
             DTDList = DTDList.OrderByDescending(Template => Template.DifficultyWeight).ToList();
 
@@ -532,6 +547,7 @@ namespace ShiftPlanner
                         _SchichtIDCounter++;
 
                         _Schichten.Add(schichtInfo);
+
                     }
                 }
 
