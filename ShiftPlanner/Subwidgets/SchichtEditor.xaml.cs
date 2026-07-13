@@ -33,6 +33,7 @@ namespace ShiftPlanner.Subwidgets
         public void SetSchichtInfo(SchichtInfo InInfo, EmployeeData ArbeiterInfo, string OrtName)
         {
             string DatumsString = $"Datum:      {InInfo.Date.Day.ToString("00")}.{InInfo.Date.Month.ToString("00")}.{InInfo.Date.Year}";
+            if (InInfo.Zeiten.bPlusOneDay) DatumsString += " +1";
             SchichtDatum.Text = DatumsString;
             string EmployeeString = $"Mitarbeiter:      {ArbeiterInfo._MitarbeiterName}";
             MitarbeiterText.Text = EmployeeString;

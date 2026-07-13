@@ -219,7 +219,7 @@
                         </MenuItem>
                     </MenuItem>
 
-                    <MenuItem Visibility="Collapsed" FontSize="14"  Header="Tools" Background="#2D2D30"  BorderBrush="LightGray" BorderThickness="0,0,1,1" Width="auto" HorizontalAlignment="Left" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" >
+                    <MenuItem FontSize="14"  Header="Tools" Background="#2D2D30"  BorderBrush="LightGray" BorderThickness="0,0,1,1" Width="auto" HorizontalAlignment="Left" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" >
                         <MenuItem Header="Verteile automatisiert Schichten"  Click="OpenAutomator" Background="#1E1E1E"   Foreground="White"/>
                     </MenuItem>
 

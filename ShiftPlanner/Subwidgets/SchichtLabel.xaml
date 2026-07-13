@@ -39,6 +39,7 @@
                     <ColumnDefinition Width="30"/>
                     <ColumnDefinition Width="30"/>
                     <ColumnDefinition Width="auto"/>
+                    <ColumnDefinition Width="30"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0"
@@ -78,8 +79,18 @@ Foreground="{Binding ElementName=RootBorder,
                    VerticalAlignment="Bottom"                          
 Foreground="{Binding ElementName=RootBorder,
                                     Path=Background,  Converter={StaticResource ContrastForegroundConverter}}"/>
-
                 <TextBlock Grid.Column="5"
+                    x:Name="PlusDayText"
+                    Text="+1"
+               
+                    FontSize="12"
+                    HorizontalAlignment="Center"
+                            Margin="0,0,0,0"
+                           Visibility="Collapsed"
+                    VerticalAlignment="Bottom"                                
+Foreground="{Binding ElementName=RootBorder,
+                                    Path=Background, Converter={StaticResource ContrastForegroundConverter}}"/>
+                <TextBlock Grid.Column="6"
                     x:Name="AlsText"
                     Text="als"
                
@@ -91,7 +102,7 @@ Foreground="{Binding ElementName=RootBorder,
 Foreground="{Binding ElementName=RootBorder,
                                     Path=Background, Converter={StaticResource ContrastForegroundConverter}}"/>
 
-                <TextBlock Grid.Column="6"
+                <TextBlock Grid.Column="7"
                      x:Name="RollenText"
                             Visibility="visible"
                     Text="Schichtleiter"

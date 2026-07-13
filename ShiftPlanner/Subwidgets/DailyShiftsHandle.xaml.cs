@@ -129,7 +129,8 @@ namespace ShiftPlanner.Subwidgets
         public string SchichtRolle { get; set; } = "";
         public string DayString { get; set; } = "";
         public List<string> TagesListe { get; set; } = new();
-        public float DifficultyWeight { get; set; }
+        public double DifficultyWeight { get; set; } //lesser is better heigher gets tried first
+        public SchichtZeit Zeiten { get; set; } = new();
 
     }
 

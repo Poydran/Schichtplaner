@@ -5,6 +5,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using ShiftPlanner.Subwidgets;
+using ShiftPlanner.Utility;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -28,8 +29,8 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using static QuestPDF.Helpers.Colors;
+using static System.Formats.Asn1.AsnWriter;
 using static System.Runtime.InteropServices.JavaScript.JSType;
-using ShiftPlanner.Utility;
 
 
 
@@ -404,17 +405,39 @@ namespace ShiftPlanner
             {
                 if (EmployeesPerRole.TryGetValue(DTD.SchichtRolle, out int count))
                 {
-                  DTD.DifficultyWeight = count / DTD.Anzahl;
+                  DTD.DifficultyWeight =  DTD.Anzahl - count;
 
                 }
+                SchichtZeit schichtZeit = new SchichtZeit();
+                TimeOnly OutTime = new();
+                schichtZeit.SchichtStart = UtilityClass.GetTimeFromString(DTD.SchichtStartText, out OutTime);
+                schichtZeit.SchichtStartText = OutTime.ToShortTimeString();
+                schichtZeit.SchichtEnde = UtilityClass.GetTimeFromString(DTD.SchichtSchlussText, out OutTime);
+                schichtZeit.SchichtSchlussText = OutTime.ToShortTimeString();
+                double StundenZahl = Math.Abs(schichtZeit.SchichtEnde - schichtZeit.SchichtStart) / 60;
+                if (_UseBreakTimes)
+                {
+                    if (StundenZahl > 9)
+                    {
+                        StundenZahl -= .75f;
+                        schichtZeit.PausenZeit = 45;
+                    }
+                    else if (StundenZahl > 6)
+                    {
+                        StundenZahl -= .5f;
+                        schichtZeit.PausenZeit = 30;
+                    }
+                }
+                schichtZeit.SchichtStunden = Math.Round(StundenZahl, 2);
+
+                DTD.DifficultyWeight += schichtZeit.SchichtStunden / 8;
             }
-            DTDList = DTDList.OrderBy(Template => Template.DifficultyWeight).ToList();
+            DTDList = DTDList.OrderByDescending(Template => Template.DifficultyWeight).ToList();
 
             List<SchichtInfo> StandortschichtenAtStart = GetShiftsForLocation(_ActiveStandortID);
-
+            List<DayAutomationScore> DaysToSet = new();
             foreach (KeyValuePair<int, string> kvp in _DayMapping)
             {
-    
                 DateTime dateTime = new DateTime(_currentMonth.Year, _currentMonth.Month, kvp.Key);
                 bool TagIsHoliiday = false;
                 if (GetStandort(_ActiveStandortID) is PlanStandortData PSD)
@@ -425,86 +448,87 @@ namespace ShiftPlanner
                     if (TagIsHoliiday && PSD.bIsClosedOnHoliday) continue;
                 }
 
+                DayAutomationScore NewDay = new();
+                NewDay.Datum = dateTime;
+                NewDay.bIsHoliday = TagIsHoliiday;
                 foreach (DayTemplateData DTD in DTDList)
                 {
-                    if(DTD.TagesListe.Contains(kvp.Key.ToString()) || DTD.TagesListe.Contains(kvp.Value.ToLower()))
+                    if (DTD.TagesListe.Contains(kvp.Key.ToString()) || DTD.TagesListe.Contains(kvp.Value.ToLower()))
                     {
-                        SchichtZeit schichtZeit = new SchichtZeit();
-                        TimeOnly OutTime = new();
-                        schichtZeit.SchichtStart = UtilityClass.GetTimeFromString(DTD.SchichtStartText, out OutTime);
-                        schichtZeit.SchichtStartText = OutTime.ToShortTimeString();
-                        schichtZeit.SchichtEnde = UtilityClass.GetTimeFromString(DTD.SchichtSchlussText, out OutTime);
-                        schichtZeit.SchichtSchlussText = OutTime.ToShortTimeString();
-                        double StundenZahl = Math.Abs(schichtZeit.SchichtEnde - schichtZeit.SchichtStart) / 60;
-                        if (_UseBreakTimes)
-                        {
-                            if (StundenZahl > 9)
-                            {
-                                StundenZahl -= .75f;
-                                schichtZeit.PausenZeit = 45;
-                            }
-                            else if (StundenZahl > 6)
-                            {
-                                StundenZahl -= .5f;
-                                schichtZeit.PausenZeit = 30;
-                            }
-                        }
-                        schichtZeit.SchichtStunden = Math.Round(StundenZahl, 2);
-                        int LoopAnzahl = DTD.Anzahl;
-                        foreach(SchichtInfo DayShift in StandortschichtenAtStart)
-                        {
-                            if (DayShift.Date == dateTime && DayShift.SchichtRolle == DTD.SchichtRolle)
-                            {
-                                     LoopAnzahl = Math.Max(0,LoopAnzahl -1);
-                            }
-                        }
-
-
-                        List<EmployeeData> AvailableEmployees = GatherAvailableEmployees(EmployeesInQuestion, DTD, dateTime, schichtZeit);
-                        List<EmployeeAutomation> WeighedEmployees = WeighEmployeesForAutomation(AvailableEmployees,DTD,dateTime,schichtZeit);
-
-                        for (int i = 0; i < LoopAnzahl; i++)
-                        {
-                            SchichtInfo schichtInfo = new SchichtInfo();
-                            schichtInfo.SchichtRolle = DTD.SchichtRolle;
-                            schichtInfo.Zeiten = schichtZeit;
-                            schichtInfo.SLinkedID = _ActiveStandortID;
-                            schichtInfo.SchichtID = _SchichtIDCounter;
-                            schichtInfo.bIsHoliday = TagIsHoliiday;
-                            schichtInfo.Date = dateTime;
-                            schichtInfo.Notiz = "";
-
-                            foreach (EmployeeAutomation EAD in WeighedEmployees)
-                            {
-                            
-                                    schichtInfo.ELinkedID = EAD.Employee._MitarbeiterID;
-
-                                    EAD.Employee._VerplanteStunden += schichtInfo.Zeiten.SchichtStunden;
-                                    _MitarbeiterWidgetMap.TryGetValue(EAD.Employee._MitarbeiterID, out Employee? OutEmployee);
-                                    if (OutEmployee != null)
-                                    {
-                                        OutEmployee.SetHours(EAD.Employee._VerplanteStunden, EAD.Employee._ZielStunden);
-                                    }
-
-                                    EAD.Employee._ZugeteilteSchichten.Add(schichtInfo.SchichtID);
-
-                           
-                                    _SchichtIDCounter++;
-                                    _Schichten.Add(schichtInfo);
-                                    break;
-                                
-                            }
-
-
-                           
-                           
-                        }
+                        NewDay.weight += DTD.DifficultyWeight;
+                        NewDay.MatchingdayTemplateDatas.Add(DTD);
                     }
                 }
+
+                foreach (EmployeeData Arbeiter in EmployeesInQuestion)
+                {
+                    if (IsDayOff(Arbeiter.FreitagsWuensche, dateTime.Day)) NewDay.weight += 25;
+                    if (IsDayOff(Arbeiter.Einsatzwuensche, dateTime.Day)) NewDay.weight += 25;
+
+                }
+
+                if (NewDay.MatchingdayTemplateDatas.Count > 0) DaysToSet.Add(NewDay);
+
+            }
+            DaysToSet = DaysToSet.OrderByDescending(Day => Day.weight).ToList();
+
+
+            foreach(DayAutomationScore DAS in DaysToSet)
+            {
+
+                foreach(DayTemplateData DTD in DAS.MatchingdayTemplateDatas)
+                {
+                    int LoopAnzahl = DTD.Anzahl;
+                    foreach (SchichtInfo DayShift in StandortschichtenAtStart)
+                    {
+                        if (DayShift.Date.Date == DAS.Datum.Date && DayShift.SchichtRolle == DTD.SchichtRolle)
+                        {
+                            LoopAnzahl = Math.Max(0, LoopAnzahl - 1);
+                        }
+                    }
+
+                    List<EmployeeData> AvailableEmployees = GatherAvailableEmployees(EmployeesInQuestion, DTD, DAS.Datum);
+                    List<EmployeeAutomation> WeighedEmployees = WeighEmployeesForAutomation(AvailableEmployees, DTD, DAS.Datum);
+
+                    for (int i = 0; i < LoopAnzahl; i++)
+                    {
+                        SchichtInfo schichtInfo = new SchichtInfo();
+                        schichtInfo.SchichtRolle = DTD.SchichtRolle;
+                        schichtInfo.Zeiten = DTD.Zeiten;
+                        schichtInfo.SLinkedID = _ActiveStandortID;
+                        schichtInfo.SchichtID = _SchichtIDCounter;
+                        schichtInfo.bIsHoliday = DAS.bIsHoliday;
+                        schichtInfo.Date = DAS.Datum;
+                        schichtInfo.Notiz = "";
+
+                        if (WeighedEmployees.Count <= 0) break;
+                        EmployeeAutomation EAD = WeighedEmployees[0];
+                        WeighedEmployees.RemoveAt(0);
+
+
+                        schichtInfo.ELinkedID = EAD.Employee._MitarbeiterID;
+
+                        EAD.Employee._VerplanteStunden += schichtInfo.Zeiten.SchichtStunden;
+                        _MitarbeiterWidgetMap.TryGetValue(EAD.Employee._MitarbeiterID, out Employee? OutEmployee);
+                        if (OutEmployee != null)
+                        {
+                            OutEmployee.SetHours(EAD.Employee._VerplanteStunden, EAD.Employee._ZielStunden);
+                        }
+
+                        EAD.Employee._ZugeteilteSchichten.Add(schichtInfo.SchichtID);
+                        EAD.Employee.TageImEinsatz.Add(DAS.Datum);
+
+                        _SchichtIDCounter++;
+
+                        _Schichten.Add(schichtInfo);
+                    }
+                }
+
             }
 
             SwitchGenerator();
             MessageBox.Show(OutputText);
+            UnsavedChanges = true;
         }
 
         private bool HasMAShiftThisDay(DateTime dateTime, EmployeeData ED)
@@ -529,7 +553,7 @@ namespace ShiftPlanner
             return false;
         }
 
-        private List<EmployeeData> GatherAvailableEmployees(List<EmployeeData> BaseEmployeeList, DayTemplateData InShiftTemplate, DateTime DateToGatherFor, SchichtZeit InZeiten)
+        private List<EmployeeData> GatherAvailableEmployees(List<EmployeeData> BaseEmployeeList, DayTemplateData InShiftTemplate, DateTime DateToGatherFor)
         {
             List<EmployeeData> ElegibleEmployees = new List<EmployeeData>();
 
@@ -537,37 +561,110 @@ namespace ShiftPlanner
             {
                 if (HasMAShiftThisDay(DateToGatherFor, ED) || IsDayOff(ED.AbwesendListeNew, DateToGatherFor.Day)) continue;
                 if (!ED._VorgeseheneRollen.Contains(InShiftTemplate.SchichtRolle)) continue;
-                if(HasMAShiftThisDay(DateToGatherFor.AddDays(-1),ED, out SchichtInfo? SI))
-                {
-                    DateTime DayBefore = DateToGatherFor;
-                    DayBefore.AddHours((int)(SI.Zeiten.SchichtEnde / 60));
-                    DayBefore.AddMinutes((int)(SI.Zeiten.SchichtEnde % 60));
-                    DateTime CurrentDay = DateToGatherFor.AddDays(-1);
-                    CurrentDay.AddHours((int)(InZeiten.SchichtStart / 60));
-                    CurrentDay.AddMinutes((int)(InZeiten.SchichtStart % 60));
-                    double hours = (CurrentDay - DayBefore).TotalHours;
-                    if (hours < 11) continue; //unterschreitet ruhezeit
-                }
 
-
-                    ElegibleEmployees.Add(ED);  
+                ElegibleEmployees.Add(ED);  
             }
 
             return ElegibleEmployees;
         }
 
-        private List<EmployeeAutomation> WeighEmployeesForAutomation(List<EmployeeData> BaseEmployeeList, DayTemplateData InShiftTemplate, DateTime DateToGatherFor, SchichtZeit InZeiten)
+        private List<EmployeeAutomation> WeighEmployeesForAutomation(List<EmployeeData> BaseEmployeeList, DayTemplateData InShiftTemplate, DateTime DateToGatherFor)
         {
             List<EmployeeAutomation> WeighedEmployees = new List<EmployeeAutomation>();
-
+            double veryLargeNumber = 1000000;
 
             foreach (EmployeeData ED in BaseEmployeeList)
             {
                 EmployeeAutomation NewAutoData = new EmployeeAutomation();
+                bool bAlreadyWorksToday =   HasMAShiftThisDay(DateToGatherFor, ED);
                 NewAutoData.Employee = ED;
-            
+                int DaysWorkedBefore = 0;
+                int DaysWorkingAfter = 0;
+                
+                for (int i = 1; i <= 15;  i++)
+                {
+                    if(HasMAShiftThisDay(DateToGatherFor.AddDays(-i), ED) )
+                    {
+                        DaysWorkedBefore++;
+                    }
+                    else break;
+
+                }
+                for (int i = 1; i <= 15; i++)
+                {
+                    if (HasMAShiftThisDay(DateToGatherFor.AddDays(i), ED))
+                    {
+                        DaysWorkingAfter++;
+                    }
+                    else break;
+                }
+                if(DaysWorkingAfter > 0)
+                {
+                    SchichtInfo? NextShift;
+                    HasMAShiftThisDay(DateToGatherFor.AddDays(1), ED, out NextShift);
+                    if (NextShift != null)
+                    {
+                        DateTime DayAfter = DateToGatherFor.AddDays(1);
+                        DayAfter=DayAfter.AddHours((int)(NextShift.Zeiten.SchichtEnde / 60));
+                        DayAfter=DayAfter.AddMinutes((int)(NextShift.Zeiten.SchichtEnde % 60));
+                        DateTime CurrentDay = DateToGatherFor;
+                        CurrentDay = CurrentDay.AddHours((int)(InShiftTemplate.Zeiten.SchichtStart / 60));
+                        CurrentDay = CurrentDay.AddMinutes((int)(InShiftTemplate.Zeiten.SchichtStart % 60));
+                        double hours = (DayAfter - CurrentDay).TotalHours;
+                        if (hours < 11) NewAutoData.Weight += veryLargeNumber; //unterschreitet ruhezeit
+                    }
+                }
+                if(DaysWorkedBefore > 0)
+                {
+                    SchichtInfo? LastShift;
+                    HasMAShiftThisDay(DateToGatherFor.AddDays(-1), ED, out LastShift);
+                    if (LastShift != null)
+                    {
+                        DateTime DayBefore = DateToGatherFor.AddDays(-1);
+                        DayBefore=DayBefore.AddHours((int)(LastShift.Zeiten.SchichtEnde / 60));
+                        DayBefore=DayBefore.AddMinutes((int)(LastShift.Zeiten.SchichtEnde % 60));
+                        DateTime CurrentDay = DateToGatherFor;
+                        CurrentDay =  CurrentDay.AddHours((int)(InShiftTemplate.Zeiten.SchichtStart / 60));
+                        CurrentDay = CurrentDay.AddMinutes((int)(InShiftTemplate.Zeiten.SchichtStart % 60));
+                        double hours = (CurrentDay - DayBefore).TotalHours;
+                        if (hours < 11) NewAutoData.Weight += veryLargeNumber; //unterschreitet ruhezeit
+                    }
+                }
+
+             
+
+                double workloadRatio = ED._VerplanteStunden / ED._ZielStunden;
+                if (bAlreadyWorksToday) NewAutoData.Weight += 1000;
+                if(ED._ZielStunden > 0)
+                {
+                    NewAutoData.Weight += (int)(workloadRatio * 130);
+                }
+                else NewAutoData.Weight += veryLargeNumber;
+
+                int totalWorkingDays = (DaysWorkedBefore + DaysWorkingAfter + 1);
+                if (totalWorkingDays > ED.MaxArbeitsTageAmStueck)
+                {
+                    NewAutoData.Weight += ((totalWorkingDays - ED.MaxArbeitsTageAmStueck) * 10);
+                }else if(totalWorkingDays == 1)
+                {
+                    NewAutoData.Weight += 5;
+                }
+                else if(totalWorkingDays <= 3)
+                {
+                    NewAutoData.Weight -= 10;
+                }
+                else { NewAutoData.Weight -= 5; }
+
+                if (ED._VorgeseheneRollen.Count > 1) NewAutoData.Weight += 5;
+
+                if (IsDayOff(ED.FreitagsWuensche, DateToGatherFor.Day)) NewAutoData.Weight += 25;
+                else NewAutoData.Weight -= ED.FreitagsWuensche.Count * 5;
+                if (IsDayOff(ED.Einsatzwuensche, DateToGatherFor.Day)) NewAutoData.Weight -= 15;
+                NewAutoData.Weight -= ED.AbwesendListeNew.Count * 2;
+                NewAutoData.Weight += ED._Standorte.Count * 7;
 
 
+                NewAutoData.Weight += Random.Shared.NextDouble();
 
                 WeighedEmployees.Add(NewAutoData);
             }
@@ -1036,6 +1133,7 @@ namespace ShiftPlanner
             {
 
                 KT.ActiveInfoBorder.Background = Brushes.Black;
+                KT.ActiveMAInfo.Foreground = Brushes.White;
                 string? Type;
                 string? TypeAB;
                 bool bFoundDay = IsDayOff(InEmployee.AbwesendListeNew, KT.DayData._KalenderDatum.Day,out Type,out TypeAB);
@@ -1057,14 +1155,6 @@ namespace ShiftPlanner
 
                         continue;
                 }
-              
-                if (IsDayOff(InEmployee.Einsatzwuensche, KT.DayData._KalenderDatum.Day))
-                {
-                    KT.ActiveInfoBorder.Visibility = Visibility.Visible;
-                    KT.ActiveInfoBorder.Background = Brushes.GreenYellow;
-                    KT.ActiveMAInfo.Text = "Einsatzwunsch";
-
-                }
 
                 if (IsDayOff(InEmployee.FreitagsWuensche, KT.DayData._KalenderDatum.Day))
                 {
@@ -1073,6 +1163,14 @@ namespace ShiftPlanner
                     KT.ActiveMAInfo.Text = "Freizeitwunsch";
                 }
 
+                if (IsDayOff(InEmployee.Einsatzwuensche, KT.DayData._KalenderDatum.Day))
+                {
+                    KT.ActiveInfoBorder.Visibility = Visibility.Visible;
+                    KT.ActiveInfoBorder.Background = Brushes.GreenYellow;
+                    KT.ActiveMAInfo.Foreground = Brushes.Black;
+                    KT.ActiveMAInfo.Text = "Einsatzwunsch";
+
+                }
 
                 foreach (int SchichtID in InEmployee._ZugeteilteSchichten)
                 {
@@ -1106,6 +1204,8 @@ namespace ShiftPlanner
 
                             AInfo += "/" + SInfo.SchichtRolle;
                         }
+
+                        if (SInfo.Zeiten.bPlusOneDay) AInfo += " +1";
 
                         KT.ActiveMAInfo.Text = AInfo;
 
@@ -1197,6 +1297,7 @@ namespace ShiftPlanner
                 }
                 KT.ActiveInfoBorder.Visibility = Visibility.Collapsed;
                 KT.ActiveInfoBorder.Background = Brushes.Black;
+                KT.ActiveMAInfo.Foreground = Brushes.White;
 
 
             }
@@ -1321,6 +1422,7 @@ namespace ShiftPlanner
                         Label.RollenText.Text = assignment.SchichtRolle;
                         Label._LinkedSchichtID = assignment.SchichtID;
                         Label._LinkedOrtID = assignment.SLinkedID;
+                        if(assignment.Zeiten.bPlusOneDay) Label.PlusDayText.Visibility = Visibility.Visible;
                         Label.RootBorder.Width = 350.0f;
                         Label.StartSchichtEdit += OpenSchichtEditor;
                         SubscribedLabels.Add(Label);
@@ -2054,6 +2156,7 @@ namespace ShiftPlanner
                                 Label.SchlussZeit.Text = assignment.Zeiten.SchichtSchlussText;
                                 Label.RollenText.Text =  _UseRoleKuerzel ?GetRoleKuerzel(assignment.SchichtRolle.ToString()) :  assignment.SchichtRolle.ToString();
                                 Label._LinkedSchichtID = assignment.SchichtID;
+                                if (assignment.Zeiten.bPlusOneDay) Label.PlusDayText.Visibility = Visibility.Visible;
                                 Label._LinkedOrtID = assignment.SLinkedID;
                                 Label.StartSchichtEdit += OpenSchichtEditor;
                                
@@ -2158,10 +2261,67 @@ namespace ShiftPlanner
 
                 }
 
-            
 
 
-                SchichtInfo Schicht = new SchichtInfo();
+            SchichtInfo Schicht = new SchichtInfo();
+            Schicht.Zeiten = BuildShiftTime(clickedDate, Begin_Box.Text, Ende_Box.Text);
+
+            if (HasMAShiftThisDay(clickedDate.AddDays(1), _ActiveEmployee, out SchichtInfo? NextShift))
+            {
+                if (NextShift != null)
+                {
+                    DateTime DayAfter = clickedDate.AddDays(1);
+                    DayAfter = DayAfter.AddHours((int)(NextShift.Zeiten.SchichtEnde / 60));
+                    DayAfter = DayAfter.AddMinutes((int)(NextShift.Zeiten.SchichtEnde % 60));
+                    DateTime CurrentDay = clickedDate;
+                    CurrentDay = CurrentDay.AddHours((int)(Schicht.Zeiten.SchichtStart / 60));
+                    CurrentDay = CurrentDay.AddMinutes((int)(Schicht.Zeiten.SchichtStart % 60));
+                    double hours = (DayAfter - CurrentDay).TotalHours;
+                    if (hours < 11)
+                    {
+                        BestätigungsWidget window = new BestätigungsWidget();
+                        window.Owner = this;
+                        string InfoText = $"Mit der Einteilung dieser Schicht wird die gesetzliche Ruhezeit des Arbeitnehmer verletzt." + Environment.NewLine + "Soll die Schicht trotzdem zugeteilt werden?";
+                        window.SetInfoText(InfoText);
+                        bool? result = window.ShowDialog();
+
+                        if (result != true)
+                        {
+                            return;
+                        }
+                    }
+                    //unterschreitet ruhezeit
+                }
+            } else if (HasMAShiftThisDay(clickedDate.AddDays(-1), _ActiveEmployee, out SchichtInfo? LastShift))
+            {
+                if (LastShift != null)
+                {
+                    DateTime DayBefore = clickedDate.AddDays(-1);
+                    DayBefore = DayBefore.AddHours((int)(LastShift.Zeiten.SchichtEnde / 60));
+                    DayBefore = DayBefore.AddMinutes((int)(LastShift.Zeiten.SchichtEnde % 60));
+                    DateTime CurrentDay = clickedDate;
+                    CurrentDay = CurrentDay.AddHours((int)(Schicht.Zeiten.SchichtStart / 60));
+                    CurrentDay = CurrentDay.AddMinutes((int)(Schicht.Zeiten.SchichtStart % 60));
+                    double hours = (CurrentDay - DayBefore).TotalHours;
+                    if (hours < 11)
+                    {
+                        BestätigungsWidget window = new BestätigungsWidget();
+                        window.Owner = this;
+                        string InfoText = $"Mit der Einteilung dieser Schicht wird die gesetzliche Ruhezeit des Arbeitnehmer verletzt." + Environment.NewLine + "Soll die Schicht trotzdem zugeteilt werden?";
+                        window.SetInfoText(InfoText);
+                        bool? result = window.ShowDialog();
+
+                        if (result != true)
+                        {
+                            return;
+                        }
+                    }
+                }
+            }
+
+
+
+          
             AssigneNewShift(clickedDate, Schicht);
             SwitchGenerator();
             UnsavedChanges = true;
@@ -2210,6 +2370,61 @@ namespace ShiftPlanner
 
             }
             SchichtInfo Schicht = new SchichtInfo();
+            Schicht.Zeiten = BuildShiftTime(clickedDate, Begin_Box.Text, Ende_Box.Text);
+
+            if (HasMAShiftThisDay(clickedDate.AddDays(1), _ActiveEmployee, out SchichtInfo? NextShift))
+            {
+                if (NextShift != null)
+                {
+                    DateTime DayAfter = clickedDate.AddDays(1);
+                    DayAfter = DayAfter.AddHours((int)(NextShift.Zeiten.SchichtEnde / 60));
+                    DayAfter = DayAfter.AddMinutes((int)(NextShift.Zeiten.SchichtEnde % 60));
+                    DateTime CurrentDay = clickedDate;
+                    CurrentDay = CurrentDay.AddHours((int)(Schicht.Zeiten.SchichtStart / 60));
+                    CurrentDay = CurrentDay.AddMinutes((int)(Schicht.Zeiten.SchichtStart % 60));
+                    double hours = (DayAfter - CurrentDay).TotalHours;
+                    if (hours < 11)
+                    {
+                        BestätigungsWidget window = new BestätigungsWidget();
+                        window.Owner = this;
+                        string InfoText = $"Mit der Einteilung dieser Schicht wird die gesetzliche Ruhezeit des Arbeitnehmer verletzt." + Environment.NewLine + "Soll die Schicht trotzdem zugeteilt werden?";
+                        window.SetInfoText(InfoText);
+                        bool? result = window.ShowDialog();
+
+                        if (result != true)
+                        {
+                            return;
+                        }
+                    }
+                    //unterschreitet ruhezeit
+                }
+            }
+            else if (HasMAShiftThisDay(clickedDate.AddDays(-1), _ActiveEmployee, out SchichtInfo? LastShift))
+            {
+                if (LastShift != null)
+                {
+                    DateTime DayBefore = clickedDate.AddDays(-1);
+                    DayBefore = DayBefore.AddHours((int)(LastShift.Zeiten.SchichtEnde / 60));
+                    DayBefore = DayBefore.AddMinutes((int)(LastShift.Zeiten.SchichtEnde % 60));
+                    DateTime CurrentDay = clickedDate;
+                    CurrentDay = CurrentDay.AddHours((int)(Schicht.Zeiten.SchichtStart / 60));
+                    CurrentDay = CurrentDay.AddMinutes((int)(Schicht.Zeiten.SchichtStart % 60));
+                    double hours = (CurrentDay - DayBefore).TotalHours;
+                    if (hours < 11)
+                    {
+                        BestätigungsWidget window = new BestätigungsWidget();
+                        window.Owner = this;
+                        string InfoText = $"Mit der Einteilung dieser Schicht wird die gesetzliche Ruhezeit des Arbeitnehmer verletzt." + Environment.NewLine + "Soll die Schicht trotzdem zugeteilt werden?";
+                        window.SetInfoText(InfoText);
+                        bool? result = window.ShowDialog();
+
+                        if (result != true)
+                        {
+                            return;
+                        }
+                    }
+                }
+            }
             AssigneNewShift(clickedDate, Schicht);
     
             int ClickedDay = InDay.DayData._KalenderDatum.Day;
@@ -2243,6 +2458,7 @@ namespace ShiftPlanner
                         Label.SchlussZeit.Text = assignment.Zeiten.SchichtSchlussText;
                         Label.RollenText.Text = _UseRoleKuerzel ? GetRoleKuerzel(assignment.SchichtRolle.ToString()) : assignment.SchichtRolle.ToString();
                         Label._LinkedSchichtID = assignment.SchichtID;
+                        if (assignment.Zeiten.bPlusOneDay) Label.PlusDayText.Visibility = Visibility.Visible;
                         Label._LinkedOrtID = assignment.SLinkedID;
                         Label.StartSchichtEdit += OpenSchichtEditor;
 
@@ -2354,39 +2570,19 @@ namespace ShiftPlanner
             Schicht.SchichtID = _SchichtIDCounter;
             Schicht.Date = clickedDate;
 
-            TimeOnly OutTime = new();
-            Schicht.Zeiten.SchichtStart = UtilityClass.GetTimeFromString(Begin_Box.Text,out OutTime);
-            Schicht.Zeiten.SchichtStartText = OutTime.ToShortTimeString();
-            Schicht.Zeiten.SchichtEnde = UtilityClass.GetTimeFromString(Ende_Box.Text, out OutTime);
-            Schicht.Zeiten.SchichtSchlussText = OutTime.ToShortTimeString();
-            double StundenZahl = Math.Abs(Schicht.Zeiten.SchichtEnde - Schicht.Zeiten.SchichtStart) / 60;
-            if (_UseBreakTimes)
+            if (GetStandort(_ActiveStandortID) is PlanStandortData PSD)
             {
-                if (StundenZahl > 9)
-                {
-                    StundenZahl -= .75f;
-                    Schicht.Zeiten.PausenZeit = 45;
-                }
-                else if (StundenZahl > 6)
-                {
-                    StundenZahl -= .5f;
-                    Schicht.Zeiten.PausenZeit = 30;
-                }
-            }
-
-            if(GetStandort(_ActiveStandortID) is PlanStandortData PSD)
-            {
-                Schicht.bIsHoliday = HolidayService.IsHoliday(clickedDate,PSD.Bundesland);
+                Schicht.bIsHoliday = HolidayService.IsHoliday(clickedDate, PSD.Bundesland);
             }
             else
             {
-                Schicht.bIsHoliday = HolidayService.IsHoliday(clickedDate,null);
+                Schicht.bIsHoliday = HolidayService.IsHoliday(clickedDate, null);
             }
 
-            Schicht.Zeiten.SchichtStunden = Math.Round(StundenZahl, 2);
+
             Schicht.SchichtRolle = SelectedRole;
             Schicht.Notiz = Notiz_Box.Text;
-         
+
             Schicht.ELinkedID = _ActiveEmployee._MitarbeiterID;
             Schicht.SLinkedID = _ActiveStandortID;
             _SchichtIDCounter++;
@@ -2401,6 +2597,47 @@ namespace ShiftPlanner
             _ActiveEmployee._ZugeteilteSchichten.Add(Schicht.SchichtID);
             _Schichten.Add(Schicht);
         }
+
+        private SchichtZeit BuildShiftTime(DateTime CurrentDate, string StartText, string EndText)
+        {
+            SchichtZeit OutShiftTime = new SchichtZeit();
+            TimeOnly OutTime = new();
+            OutShiftTime.SchichtStart = UtilityClass.GetTimeFromString(StartText, out OutTime);
+            OutShiftTime.SchichtStartText = OutTime.ToShortTimeString();
+            OutShiftTime.SchichtEnde = UtilityClass.GetTimeFromString(EndText, out OutTime);
+            OutShiftTime.SchichtSchlussText = OutTime.ToShortTimeString();
+            DateTime StartTime = CurrentDate.Date;
+            StartTime = StartTime.AddHours((int)(OutShiftTime.SchichtStart / 60));
+            StartTime = StartTime.AddMinutes((int)(OutShiftTime.SchichtStart % 60));
+            DateTime EndTime = CurrentDate.Date;
+            EndTime = EndTime.AddHours((int)(OutShiftTime.SchichtEnde / 60));
+            EndTime = EndTime.AddMinutes((int)(OutShiftTime.SchichtEnde % 60));
+            if (OutShiftTime.SchichtEnde < OutShiftTime.SchichtStart)
+            {
+                EndTime = EndTime.AddDays(1);
+                OutShiftTime.bPlusOneDay = true;
+            }
+            OutShiftTime.SchichtEndDate = EndTime;
+            OutShiftTime.SchichtStartDate = StartTime;
+           // MessageBox.Show($"{OutShiftTime.SchichtStart}" + Environment.NewLine + $"{OutShiftTime.SchichtEnde}" + Environment.NewLine + $"{StartTime}" + Environment.NewLine+$"{EndTime}" );
+            double StundenZahl = (OutShiftTime.SchichtEndDate - OutShiftTime.SchichtStartDate).TotalHours;
+            if (_UseBreakTimes)
+            {
+                if (StundenZahl > 9)
+                {
+                    StundenZahl -= .75f;
+                    OutShiftTime.PausenZeit = 45;
+                }
+                else if (StundenZahl > 6)
+                {
+                    StundenZahl -= .5f;
+                   OutShiftTime.PausenZeit = 30;
+                }
+            }
+            OutShiftTime.SchichtStunden = Math.Round(StundenZahl, 2);
+            return OutShiftTime;
+        }
+
         private void RoleButton_ClickedButton(int InDay)
         {
             CalendarBorder.Visibility = Visibility.Collapsed;
@@ -2510,26 +2747,9 @@ namespace ShiftPlanner
 
                 double BeforeHours = SelectedSchicht.Zeiten.SchichtStunden;
 
-                TimeOnly OutTime = new();
-                SelectedSchicht.Zeiten.SchichtStart = UtilityClass.GetTimeFromString(InChanges.NewStartTime, out OutTime);
-                SelectedSchicht.Zeiten.SchichtStartText = OutTime.ToShortTimeString();
-                SelectedSchicht.Zeiten.SchichtEnde = UtilityClass.GetTimeFromString(InChanges.NewEndTime, out OutTime);
-                SelectedSchicht.Zeiten.SchichtSchlussText = OutTime.ToShortTimeString();
-                double StundenZahl = Math.Abs(SelectedSchicht.Zeiten.SchichtEnde - SelectedSchicht.Zeiten.SchichtStart) / 60;
-                if (_UseBreakTimes)
-                {
-                    if (StundenZahl > 9)
-                    {
-                        StundenZahl -= .75f;
-                        SelectedSchicht.Zeiten.PausenZeit = 45;
-                    }
-                    else if (StundenZahl > 6)
-                    {
-                        StundenZahl -= .5f;
-                        SelectedSchicht.Zeiten.PausenZeit = 30;
-                    }
-                }
-                SelectedSchicht.Zeiten.SchichtStunden = Math.Round(StundenZahl, 2);
+                SelectedSchicht.Zeiten = BuildShiftTime(SelectedSchicht.Date, InChanges.NewStartTime, InChanges.NewEndTime);
+
+
 
                 if (GetMitarbeiter(SelectedSchicht.ELinkedID) is EmployeeData Arbeiter)
                 {
@@ -2550,6 +2770,7 @@ namespace ShiftPlanner
                                 schichtLabel.NameText.Text = $"{_Standorte[SelectedSchicht.SLinkedID].StandortName} am {SelectedSchicht.Date.Day.ToString("00")}.{SelectedSchicht.Date.Month.ToString("00")}.{SelectedSchicht.Date.Year}";
                                 schichtLabel.StartZeit.Text = SelectedSchicht.Zeiten.SchichtStartText;
                                 schichtLabel.SchlussZeit.Text = SelectedSchicht.Zeiten.SchichtSchlussText;
+                                if (SelectedSchicht.Zeiten.bPlusOneDay) schichtLabel.PlusDayText.Visibility = Visibility.Visible; else schichtLabel.PlusDayText.Visibility = Visibility.Collapsed;
                                 break;
                             }
 
@@ -2563,6 +2784,9 @@ namespace ShiftPlanner
                 if (_SchichtEditorCache != null)
                 {
 
+                    string DatumsString = $"Datum:      {SelectedSchicht.Date.Day.ToString("00")}.{SelectedSchicht.Date.Month.ToString("00")}.{SelectedSchicht.Date.Year}";
+                    if (SelectedSchicht.Zeiten.bPlusOneDay) DatumsString += " +1";
+                    _SchichtEditorCache.SchichtDatum.Text = DatumsString;
                     _SchichtEditorCache.StartZeit.Text = SelectedSchicht.Zeiten.SchichtStartText;
                     _SchichtEditorCache.SchlussZeit.Text = SelectedSchicht.Zeiten.SchichtSchlussText;
                     string StundenText = $"{SelectedSchicht.Zeiten.SchichtStunden} std";
@@ -3709,153 +3933,168 @@ namespace ShiftPlanner
                                             }
                                             if (!bEmployeeIsInST) continue;
 
-                                            table.Cell().Element(x => HeaderStyle(x)).PreventPageBreak()
-                                            .Text(text => { text.Span(EP._MitarbeiterName).FontSize(_ExportSizePDFST + 3); text.Line(""); text.Span($"Arbeitszeit: {EP._VerplanteStunden} std").FontSize(_ExportSizePDFST); 
-                                                });
-                                          
+                                            table.Cell()
+                                                   .ColumnSpan((uint)(Days.Count + 1))
+                                                   .PreventPageBreak()
+                                                   .Table(row =>
+                                                   {
+                                                       row.ColumnsDefinition(columns =>
+                                                       {
+                                                           columns.ConstantColumn(100);
+                                                           foreach (DayData Day in Days)
+                                                           {
+                                                               columns.RelativeColumn();
+                                                           }
+                                                       });
 
-                                            foreach (DayData Day in Days)
-                                            {
-                                                float CellLeftThickness = 1;
-                                                float CellRightThickness = 1;
-                                                if (Day.daystring.ToLower() == "so")
-                                                {
-                                                    CellRightThickness = 3f;
-                                                }
-                                                else if (Day.daystring.ToLower() == "mo")
-                                                {
-                                                    CellLeftThickness = 3f;
-                                                }
+                                                       row.Cell().Element(x => HeaderStyle(x))
+                                                        .Text(text => {
+                                                            text.Span(EP._MitarbeiterName).FontSize(_ExportSizePDFST + 3); text.Line(""); text.Span($"Arbeitszeit: {EP._VerplanteStunden} std").FontSize(_ExportSizePDFST);
+                                                        });
 
-                                                if (PlanStandort.SchliessTageList.Count > 0)
-                                                {
+                                                       foreach (DayData Day in Days)
+                                                       {
+                                                           float CellLeftThickness = 1;
+                                                           float CellRightThickness = 1;
+                                                           if (Day.daystring.ToLower() == "so")
+                                                           {
+                                                               CellRightThickness = 3f;
+                                                           }
+                                                           else if (Day.daystring.ToLower() == "mo")
+                                                           {
+                                                               CellLeftThickness = 3f;
+                                                           }
 
-                                                    if (PlanStandort.SchliessTageList.Contains(Day._TagesDatum.Day.ToString()) || PlanStandort.SchliessTageList.Contains(Day.daystring.ToLower()))
-                                                    {
+                                                           if (PlanStandort.SchliessTageList.Count > 0)
+                                                           {
 
-                                                        table.Cell().Background(QuestPDF.Helpers.Colors.Red.Darken1).Element(x =>
-                                                        CellStyle(x, CellRightThickness, CellLeftThickness)).AlignMiddle().AlignCenter().PreventPageBreak().Text("X").FontSize(10);
+                                                               if (PlanStandort.SchliessTageList.Contains(Day._TagesDatum.Day.ToString()) || PlanStandort.SchliessTageList.Contains(Day.daystring.ToLower()))
+                                                               {
 
-                                                        continue;
-                                                    }
+                                                                   row.Cell().Background(QuestPDF.Helpers.Colors.Red.Darken1).Element(x =>
+                                                                   CellStyle(x, CellRightThickness, CellLeftThickness)).AlignMiddle().AlignCenter().PreventPageBreak().Text("X").FontSize(10);
 
-                                                }
+                                                                   continue;
+                                                               }
 
-                                                if (EP._ZugeteilteSchichten.Intersect(Day.schichtIDs).Any())
-                                                {
-                                                    int commonValue = EP._ZugeteilteSchichten.Intersect(Day.schichtIDs).FirstOrDefault();
+                                                           }
 
-                                                    // commonValue contains the first shared int
-                                                    if (GetSchicht(commonValue) is SchichtInfo CommonShift)
-                                                    {
-                                                        if (!UsedRoles.Contains(CommonShift.SchichtRolle)) UsedRoles.Add(CommonShift.SchichtRolle);
+                                                           if (EP._ZugeteilteSchichten.Intersect(Day.schichtIDs).Any())
+                                                           {
+                                                               int commonValue = EP._ZugeteilteSchichten.Intersect(Day.schichtIDs).FirstOrDefault();
 
-                                                        string RString = "";
-                                                        if (_UseRoleKuerzel)
-                                                        {
-                                                            RString = GetRoleKuerzel(CommonShift.SchichtRolle);
-                                                            bUseLegend = true;
-                                                        }
-                                                        else
-                                                        {
-                                                            RString = CommonShift.SchichtRolle;
-                                                        }
+                                                               // commonValue contains the first shared int
+                                                               if (GetSchicht(commonValue) is SchichtInfo CommonShift)
+                                                               {
+                                                                   if (!UsedRoles.Contains(CommonShift.SchichtRolle)) UsedRoles.Add(CommonShift.SchichtRolle);
 
-                                                        string ColorHex = "#FFFFFF";
-                                                        if (_UseColorForPDF && EP.ColorHex != "#3A3A3A") ColorHex = EP.ColorHex;
+                                                                   string RString = "";
+                                                                   if (_UseRoleKuerzel)
+                                                                   {
+                                                                       RString = GetRoleKuerzel(CommonShift.SchichtRolle);
+                                                                       bUseLegend = true;
+                                                                   }
+                                                                   else
+                                                                   {
+                                                                       RString = CommonShift.SchichtRolle;
+                                                                   }
 
-                                                        QuestPDF.Infrastructure.Color c = QuestPDF.Infrastructure.Color.FromHex(ColorHex);
-                                                        
-                                                        // Perceived brightness
-                                                        double brightness =
-                                                                (0.299 * c.Red +
-                                                                 0.587 * c.Green +
-                                                                 0.114 * c.Blue);
+                                                                   string ColorHex = "#FFFFFF";
+                                                                   if (_UseColorForPDF && EP.ColorHex != "#3A3A3A") ColorHex = EP.ColorHex;
 
-                                                        QuestPDF.Infrastructure.Color TextBrush =  brightness > 128
-                                                                ? QuestPDF.Infrastructure.Color.FromHex("#000000")
-                                                                : QuestPDF.Infrastructure.Color.FromHex("#FFFFFF");
+                                                                   QuestPDF.Infrastructure.Color c = QuestPDF.Infrastructure.Color.FromHex(ColorHex);
 
-                                                        if(!string.IsNullOrWhiteSpace(CommonShift.Notiz))
-                                                        {
-                                                            if(CommonShift.Notiz.Length < 4)
-                                                            {
-                                                                RString += $"({CommonShift.Notiz})";
-                                                            }
-                                                        }
-                                                        
-                                                        table.Cell().Background(ColorHex).Element(x =>
-                                                            CellStyle(x, CellRightThickness, CellLeftThickness))
-                                                        .PreventPageBreak()
-                                                        .Text(RString + Environment.NewLine + CommonShift.Zeiten.SchichtStartText + Environment.NewLine + CommonShift.Zeiten.SchichtSchlussText).FontSize(_ExportSizePDFST)
-                                                        .FontColor(TextBrush).AlignCenter();
-                                                    }
-                                                    else
-                                                    {
-                                                        table.Cell().Element(x =>
-                                                            CellStyle(x, CellRightThickness, CellLeftThickness)).Text("").FontSize(_ExportSizePDFST);
-                                                    }
+                                                                   // Perceived brightness
+                                                                   double brightness =
+                                                                           (0.299 * c.Red +
+                                                                            0.587 * c.Green +
+                                                                            0.114 * c.Blue);
 
-                                                }
-                                                else if (_ShowOutOfOfficeReason)
-                                                {
-                                                    string SetString = Environment.NewLine;
-                              
-                                                    if(IsDayOff(EP.AbwesendListeNew, Day._TagesDatum.Day, out string? Type, out string? TypeAB))
-                                                    {
-                                                        if (!string.IsNullOrWhiteSpace(Type))
-                                                        {
-                                                            if (!string.IsNullOrWhiteSpace(TypeAB))
-                                                            {
-                                                                SetString += TypeAB.ToString();
-                                                                bUseLegend = true;
-                                                                if (!abwesenheitsKuerzel.ContainsKey(Type))
-                                                                { abwesenheitsKuerzel.Add(Type, TypeAB); }
+                                                                   QuestPDF.Infrastructure.Color TextBrush = brightness > 128
+                                                                           ? QuestPDF.Infrastructure.Color.FromHex("#000000")
+                                                                           : QuestPDF.Infrastructure.Color.FromHex("#FFFFFF");
 
+                                                                   if (!string.IsNullOrWhiteSpace(CommonShift.Notiz))
+                                                                   {
+                                                                       if (CommonShift.Notiz.Length < 4)
+                                                                       {
+                                                                           RString += $"({CommonShift.Notiz})";
+                                                                       }
+                                                                   }
 
-                                                            }
-                                                            else
-                                                            {
-                                                                SetString += Type.ToString();
-                                                            }
-                                                        }
+                                                                   row.Cell().Background(ColorHex).Element(x =>
+                                                                       CellStyle(x, CellRightThickness, CellLeftThickness))
+                                                                   .PreventPageBreak()
+                                                                   .Text(RString + Environment.NewLine + CommonShift.Zeiten.SchichtStartText + Environment.NewLine + CommonShift.Zeiten.SchichtSchlussText).FontSize(_ExportSizePDFST)
+                                                                   .FontColor(TextBrush).AlignCenter();
+                                                               }
+                                                               else
+                                                               {
+                                                                   row.Cell().Element(x =>
+                                                                       CellStyle(x, CellRightThickness, CellLeftThickness)).Text("").FontSize(_ExportSizePDFST);
+                                                               }
 
-                                                    }
-                                                    else if (IsDayOff(EP.FreitagsWuensche, Day._TagesDatum.Day, out string? TypeFW, out string? TypeFWAB))
-                                                    {
-                                                        if (!string.IsNullOrWhiteSpace(TypeFW))
-                                                        {
+                                                           }
+                                                           else if (_ShowOutOfOfficeReason)
+                                                           {
+                                                               string SetString = Environment.NewLine;
 
-                                                            if (!string.IsNullOrWhiteSpace(TypeFWAB))
-                                                            {
-                                                                SetString += TypeFWAB.ToString();
-                                                                bUseLegend = true;
-                                                                if (!abwesenheitsKuerzel.ContainsKey(TypeFW))
-                                                                { abwesenheitsKuerzel.Add(TypeFW, TypeFWAB); }
+                                                               if (IsDayOff(EP.AbwesendListeNew, Day._TagesDatum.Day, out string? Type, out string? TypeAB))
+                                                               {
+                                                                   if (!string.IsNullOrWhiteSpace(Type))
+                                                                   {
+                                                                       if (!string.IsNullOrWhiteSpace(TypeAB))
+                                                                       {
+                                                                           SetString += TypeAB.ToString();
+                                                                           bUseLegend = true;
+                                                                           if (!abwesenheitsKuerzel.ContainsKey(Type))
+                                                                           { abwesenheitsKuerzel.Add(Type, TypeAB); }
 
 
-                                                            }
-                                                            else
-                                                            {
-                                                                SetString += TypeFW.ToString();
-                                                            }
+                                                                       }
+                                                                       else
+                                                                       {
+                                                                           SetString += Type.ToString();
+                                                                       }
+                                                                   }
 
-                                                        }
-                                                        else
-                                                        {
-                                                            SetString += "FW";
-                                                        }
-                                                    }
+                                                               }
+                                                               else if (IsDayOff(EP.FreitagsWuensche, Day._TagesDatum.Day, out string? TypeFW, out string? TypeFWAB))
+                                                               {
+                                                                   if (!string.IsNullOrWhiteSpace(TypeFW))
+                                                                   {
 
-                                                    table.Cell().Element(x =>
-                                                            CellStyle(x, CellRightThickness, CellLeftThickness)).Text(SetString).FontSize(_ExportSizePDFST).AlignCenter().Bold();
-                                                }
-                                                else
-                                                {
-                                                    table.Cell().Element(x =>
-                                                            CellStyle(x, CellRightThickness, CellLeftThickness)).Text("").FontSize(_ExportSizePDFST).AlignCenter();
-                                                }
-                                            }
+                                                                       if (!string.IsNullOrWhiteSpace(TypeFWAB))
+                                                                       {
+                                                                           SetString += TypeFWAB.ToString();
+                                                                           bUseLegend = true;
+                                                                           if (!abwesenheitsKuerzel.ContainsKey(TypeFW))
+                                                                           { abwesenheitsKuerzel.Add(TypeFW, TypeFWAB); }
+
+
+                                                                       }
+                                                                       else
+                                                                       {
+                                                                           SetString += TypeFW.ToString();
+                                                                       }
+
+                                                                   }
+                                                                   else
+                                                                   {
+                                                                       SetString += "FW";
+                                                                   }
+                                                               }
+
+                                                               row.Cell().Element(x =>
+                                                                       CellStyle(x, CellRightThickness, CellLeftThickness)).Text(SetString).FontSize(_ExportSizePDFST).AlignCenter().Bold();
+                                                           }
+                                                           else
+                                                           {
+                                                               row.Cell().Element(x =>
+                                                                       CellStyle(x, CellRightThickness, CellLeftThickness)).Text("").FontSize(_ExportSizePDFST).AlignCenter();
+                                                           }
+                                                       }
+                                                   });
                                         }
 
 
@@ -4014,10 +4253,13 @@ namespace ShiftPlanner
     {
         public SchichtZeit() { }
         public double SchichtStart { get; set; } = 480; //8Uhr in Minuten
+        public DateTime SchichtStartDate { get; set; } //8Uhr in Minuten
         public string SchichtStartText { get; set; } = "";
-        public double SchichtEnde { get; set; } = 960; //16Uhr in Minuten
+        public double SchichtEnde { get; set; } = 960; //16Uhr in Minute
+        public DateTime SchichtEndDate { get; set; }
         public string SchichtSchlussText { get; set; } = "";
         public double SchichtStunden { get; set; } = 8.0f; //16Uhr in Minuten
+        public bool bPlusOneDay { get; set; } = false;
         public int PausenZeit { get; set; } = 0; //30 Minuten ab 6std, 45 Minuten ab 9std
     }
 
@@ -4040,6 +4282,16 @@ namespace ShiftPlanner
 
     }
 
+    public class DayAutomationScore
+    {
+
+        public DateTime Datum { get; set; }
+        public double weight { get; set; } = 0.0f;
+        public bool bIsHoliday { get; set; } = false;
+        public List<DayTemplateData> MatchingdayTemplateDatas { get; set; } = new();
+
+    }
+
     public class SchichtInfo
     {
         public SchichtInfo() { }
@@ -4056,7 +4308,7 @@ namespace ShiftPlanner
 
     public class EmployeeAutomation
     {
-        public int Weight { get; set; }
+        public double Weight { get; set; }
         public EmployeeData Employee { get; set; } = new();
     }
 
