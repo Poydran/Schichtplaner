@@ -162,15 +162,16 @@ namespace ShiftPlanner.Subwidgets
             }
 
 
-            List<string>? NewSchliessTage = abwesendBox.Text.Split(',', ';').ToList();
-            if (!FilterTagesBoxen(NewSave.AbwesendListe, NewSave.AbwesendString, NewSchliessTage)) return;
+         
+            if (!FilterTagesBoxen(NewSave.AbwesendListe, NewSave.AbwesendString)) return;
             AbwesendeTage.Text = abwesendBox.Text;
-            List<string>? EinsatzListe = EinsatzBox.Text.Split(',', ';').ToList();
-            if (!FilterTagesBoxen(NewSave.Einsatzwuensche, NewSave.EinsatzwunschString, EinsatzListe)) return;
+            NewSave.AbwesendString = abwesendBox.Text;
+            if (!FilterTagesBoxen( NewSave.Einsatzwuensche, EinsatzBox.Text)) return;
             EinsatzTage.Text = EinsatzBox.Text;
-            List<string>? FreiWunschListe = FreizeitBox.Text.Split(',', ';').ToList();
-            if (!FilterTagesBoxen(NewSave.FreitagsWuensche, NewSave.FreitagWunschString, FreiWunschListe)) return;
+            NewSave.EinsatzwunschString = EinsatzBox.Text;
+            if (!FilterTagesBoxen(NewSave.FreitagsWuensche,  FreizeitBox.Text)) return;
             FreizeitTage.Text = FreizeitBox.Text;
+            NewSave.FreitagWunschString = FreizeitBox.Text; 
 
             SaveMAChanges?.Invoke(NewSave);
 
@@ -205,8 +206,10 @@ namespace ShiftPlanner.Subwidgets
     
         }
 
-        private bool FilterTagesBoxen(List<TagesWunsch> WunschListe, string WunschString, List<string> TagesListe)
+        private bool FilterTagesBoxen( List<TagesWunsch> WunschListe, string TageText)
         {
+
+            List<string>? TagesListe = TageText.Split(',', ';').ToList();
             if (TagesListe != null && TagesListe.Count > 0)
             {
                 string DayStrings = "mo,di,mi,do,fr,sa,so";
@@ -290,7 +293,6 @@ namespace ShiftPlanner.Subwidgets
 
                 }
 
-                WunschString = abwesendBox.Text;
             }
 
             return true;
