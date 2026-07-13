@@ -375,7 +375,14 @@ namespace ShiftPlanner
 
         private void TriggerAutomation(List<DayTemplateData> DTDList)
         {
-            string OutputText = "Ausgabe Log:" + Environment.NewLine;
+
+
+            if (DTDList.Count <= 0) return;
+            string OutputText = "Ausgabe Log:" + Environment.NewLine + Environment.NewLine;
+            string FehlendeSchichten = "";
+            string UberarbeiteteMitarbeiter = "";
+            string ZuvieleTage = "";
+
             List<EmployeeData> EmployeesInQuestion = new List<EmployeeData>();
             Dictionary<string, int> EmployeesPerRole = new();
             foreach (EmployeeData ED in _Mitartbeiter)
@@ -501,7 +508,11 @@ namespace ShiftPlanner
                         schichtInfo.Date = DAS.Datum;
                         schichtInfo.Notiz = "";
 
-                        if (WeighedEmployees.Count <= 0) break;
+                        if (WeighedEmployees.Count <= 0)
+                        {
+                            FehlendeSchichten+= $"Für den {DAS.Datum.ToShortDateString()} konnten nicht alle {DTD.SchichtRolle} besetzt werden." + Environment.NewLine;
+                            break;
+                        }
                         EmployeeAutomation EAD = WeighedEmployees[0];
                         WeighedEmployees.RemoveAt(0);
 
@@ -517,7 +528,7 @@ namespace ShiftPlanner
 
                         EAD.Employee._ZugeteilteSchichten.Add(schichtInfo.SchichtID);
                         EAD.Employee.TageImEinsatz.Add(DAS.Datum);
-
+                      
                         _SchichtIDCounter++;
 
                         _Schichten.Add(schichtInfo);
@@ -526,7 +537,38 @@ namespace ShiftPlanner
 
             }
 
+            foreach(EmployeeData ED in EmployeesInQuestion)
+            {
+                if(ED._ZielStunden < ED._VerplanteStunden)
+                {
+
+                    UberarbeiteteMitarbeiter += $"Der Mitarbeiter {ED._MitarbeiterName} arbeitet { ED._VerplanteStunden - ED._ZielStunden} Stunden mehr, als für ihn festgelegt." + Environment.NewLine;
+                }
+
+                List<int> ZuVieleTageInFolge = new List<int>();
+                int ConsecutiveDays = 0;
+                DateTime StartDate = _currentMonth.AddDays(-10);
+                for (int i = 1; i <= 51; i++)
+                {
+                    if (HasMAShiftThisDay(StartDate.AddDays(i), ED))
+                    {
+                        ConsecutiveDays++;
+                    }
+                    else
+                    {
+                        if (ConsecutiveDays > ED.MaxArbeitsTageAmStueck)
+                        {
+                            ZuvieleTage += $"Der Mitarbeiter {ED._MitarbeiterName} arbeitet {ConsecutiveDays - ED.MaxArbeitsTageAmStueck} Tage länger in Folge als für das Maximum festgelegt." + Environment.NewLine;
+                        }
+                        ConsecutiveDays = 0;
+                        if (StartDate.Month > _currentMonth.Month) break;
+                    }
+                }
+                
+            }
+
             SwitchGenerator();
+            OutputText += FehlendeSchichten + UberarbeiteteMitarbeiter + ZuvieleTage;
             MessageBox.Show(OutputText);
             UnsavedChanges = true;
         }
@@ -611,7 +653,7 @@ namespace ShiftPlanner
                         CurrentDay = CurrentDay.AddHours((int)(InShiftTemplate.Zeiten.SchichtStart / 60));
                         CurrentDay = CurrentDay.AddMinutes((int)(InShiftTemplate.Zeiten.SchichtStart % 60));
                         double hours = (DayAfter - CurrentDay).TotalHours;
-                        if (hours < 11) NewAutoData.Weight += veryLargeNumber; //unterschreitet ruhezeit
+                        if (hours < 11) continue; //unterschreitet ruhezeit
                     }
                 }
                 if(DaysWorkedBefore > 0)
@@ -627,14 +669,14 @@ namespace ShiftPlanner
                         CurrentDay =  CurrentDay.AddHours((int)(InShiftTemplate.Zeiten.SchichtStart / 60));
                         CurrentDay = CurrentDay.AddMinutes((int)(InShiftTemplate.Zeiten.SchichtStart % 60));
                         double hours = (CurrentDay - DayBefore).TotalHours;
-                        if (hours < 11) NewAutoData.Weight += veryLargeNumber; //unterschreitet ruhezeit
+                        if (hours < 11) continue; //unterschreitet ruhezeit
                     }
                 }
 
              
 
                 double workloadRatio = ED._VerplanteStunden / ED._ZielStunden;
-                if (bAlreadyWorksToday) NewAutoData.Weight += 1000;
+                if (bAlreadyWorksToday) continue;
                 if(ED._ZielStunden > 0)
                 {
                     NewAutoData.Weight += (int)(workloadRatio * 130);
@@ -4309,6 +4351,7 @@ namespace ShiftPlanner
     public class EmployeeAutomation
     {
         public double Weight { get; set; }
+        public int TageAmStueckBeiSchicht { get; set; }
         public EmployeeData Employee { get; set; } = new();
     }
 

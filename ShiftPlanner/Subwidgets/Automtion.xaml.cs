@@ -48,7 +48,25 @@ namespace ShiftPlanner.Subwidgets
             }
 
             MakeNewTemplate();
-            ActiveHandles.Children.Add(TempElement);
+
+
+            Grid grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { });
+            Button button = new Button
+            {
+                Content = "Entfernen",
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0,0,10,0)
+
+
+            };
+            Grid.SetColumn(button, 1);
+            button.Click += Loesch_Click;
+            grid.Children.Add(button);
+            grid.Children.Add(TempElement);
+            ActiveHandles.Children.Add(grid);
          
         }
 
@@ -58,6 +76,23 @@ namespace ShiftPlanner.Subwidgets
             DialogResult = true;
             Close();
         }
+
+        private void Loesch_Click(object sender, RoutedEventArgs e)
+        {
+
+            Button button = (Button)sender;
+            Grid grid = button.Parent as Grid;
+            foreach (UIElement child in grid.Children)
+            {
+                    if (child is DailyShiftsHandle handle)
+                    {
+                        Templates.Remove(handle.dayTemplateData);
+                    }
+            }
+            button.Click -= Loesch_Click;
+            ActiveHandles.Children.Remove(grid);
+        }
+
 
         public event Action<List<DayTemplateData>>? Automate;
 

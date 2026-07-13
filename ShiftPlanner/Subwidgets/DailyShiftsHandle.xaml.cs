@@ -106,15 +106,14 @@ namespace ShiftPlanner.Subwidgets
             Tage.Text = Tagesbox.Text;
 
             dayTemplateData.DayString = Tage.Text;
-            Tagesbox.Visibility = Visibility.Collapsed;
-            Tage.Visibility = Visibility.Visible;
             Tooltip.Visibility = Visibility.Collapsed;
             AnzahlBox.Visibility = Visibility.Collapsed;
             RoleSelection.Visibility = Visibility.Collapsed;
             RText.Visibility = Visibility.Visible;
             Anzahl.Visibility = Visibility.Visible;
             Begin_Box.IsReadOnly = true;
-            Ende_Box.IsReadOnly = true; 
+            Ende_Box.IsReadOnly = true;
+            Tagesbox.IsReadOnly = true;
             return true;
         }
      

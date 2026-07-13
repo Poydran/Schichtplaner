@@ -809,7 +809,7 @@
 
                     </StackPanel>
 
-                    <TextBlock Grid.Row="1" Text="Version: 1.0.2"
+                    <TextBlock Grid.Row="1" Text="Version: 1.1.0"
                       FontSize="12"
                       Foreground="Gray"
                       VerticalAlignment="Bottom"
