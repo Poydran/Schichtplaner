@@ -64,6 +64,7 @@
                     <MenuItem FontSize="14"   Header="Standorte" Background="#2D2D30" BorderThickness="0,0,1,1" BorderBrush="LightGray" Width="auto" HorizontalAlignment="Left" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" >
                         <MenuItem Header="Neuer Standort"  Click="AddStandort_Click" Background="#1E1E1E"   Foreground="White" />
                         <MenuItem Header="Standort löschen" Background="#1E1E1E"   Foreground="White"  Click="RemoveStandort_Click"/>
+                        <MenuItem Header="Standortschichten löschen" Background="#1E1E1E"   Foreground="White"  Click="StandortSchichtenLoeschen_Click"/>
                     </MenuItem>
 
                     <MenuItem FontSize="14"  Header="Mitarbeiter" Background="#2D2D30"  BorderBrush="LightGray" BorderThickness="0,0,1,1" Width="auto" HorizontalAlignment="Left" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" >

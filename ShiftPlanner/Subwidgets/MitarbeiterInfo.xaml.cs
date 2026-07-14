@@ -163,7 +163,7 @@ namespace ShiftPlanner.Subwidgets
 
 
          
-            if (!FilterTagesBoxen(NewSave.AbwesendListe, NewSave.AbwesendString)) return;
+            if (!FilterTagesBoxen(NewSave.AbwesendListe, abwesendBox.Text)) return;
             AbwesendeTage.Text = abwesendBox.Text;
             NewSave.AbwesendString = abwesendBox.Text;
             if (!FilterTagesBoxen( NewSave.Einsatzwuensche, EinsatzBox.Text)) return;

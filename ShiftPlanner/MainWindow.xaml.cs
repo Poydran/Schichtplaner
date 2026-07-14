@@ -372,6 +372,20 @@ namespace ShiftPlanner
 
         }
 
+        private void StandortSchichtenLoeschen_Click(object sender, RoutedEventArgs e)
+        {
+
+            if (_ActiveStandortID < 0)
+            {
+                MessageBox.Show("Bitte wähle vorher einen Standort aus.");
+                return;
+            }
+
+            LoescheAlleStandortSchichten(_ActiveStandortID);
+
+        }
+
+
 
         private void TriggerAutomation(List<DayTemplateData> DTDList)
         {
@@ -928,13 +942,13 @@ namespace ShiftPlanner
                 NewEditor.CBClosedOnHoliday.IsChecked = STInfo.bIsClosedOnHoliday;
                 NewEditor.BundeslaenderWahl.SelectedItem = STInfo.Bundesland;
                 NewEditor.SaveSTChanges += SaveStandortInfo;
-                NewEditor.DeleteAllShifts += LoescheAlleStandortSchichten;
+                NewEditor.DeleteAllShifts += LoescheAlleStandortSchichtenDesMonat;
                 bool? result = NewEditor.ShowDialog();
 
                 if (result != null)
                 {
                     NewEditor.SaveSTChanges -= SaveStandortInfo;
-                    NewEditor.DeleteAllShifts -= LoescheAlleStandortSchichten;
+                    NewEditor.DeleteAllShifts -= LoescheAlleStandortSchichtenDesMonat;
                 }
             }
         }
@@ -956,9 +970,6 @@ namespace ShiftPlanner
                     LocationText.Text = STInfo.StandortName;
                     SwitchGenerator();
                 }
-
-
-
             }
         }
         public string GetStandortKuerzel(int SID)
@@ -989,6 +1000,31 @@ namespace ShiftPlanner
                             }
                         }
                         ClearSelectedShiftsFromEmployee(ShiftsToDelete,MID);    
+                    }
+                }
+
+            }
+
+            SwitchGenerator();
+        }
+
+        public void LoescheAlleStandortSchichtenDesMonat(int SID)
+        {
+            if (GetStandort(SID) is PlanStandortData STInfo)
+            {
+                foreach (int MID in STInfo.MAIDs)
+                {
+                    if (GetMitarbeiter(MID) is EmployeeData Arbeiter)
+                    {
+                        List<int> ShiftsToDelete = new List<int>();
+                        foreach (int SchiftID in Arbeiter._ZugeteilteSchichten)
+                        {
+                            if (GetSchicht(SchiftID) is SchichtInfo SelectedSchicht)
+                            {
+                                if (SelectedSchicht.SLinkedID == SID && SelectedSchicht.Date.Year == _currentMonth.Year && SelectedSchicht.Date.Month == _currentMonth.Month) ShiftsToDelete.Add(SchiftID);
+                            }
+                        }
+                        ClearSelectedShiftsFromEmployee(ShiftsToDelete, MID);
                     }
                 }
 
@@ -2825,7 +2861,7 @@ namespace ShiftPlanner
                         {
                             if (element is SchichtLabel schichtLabel && schichtLabel._LinkedSchichtID == SelectedSchicht.SchichtID)
                             {
-                                schichtLabel.NameText.Text = $"{_Standorte[SelectedSchicht.SLinkedID].StandortName} am {SelectedSchicht.Date.Day.ToString("00")}.{SelectedSchicht.Date.Month.ToString("00")}.{SelectedSchicht.Date.Year}";
+                                schichtLabel.NameText.Text = $"{_Standorte[SelectedSchicht.SLinkedID].StandortName} am {_DayMapping[SelectedSchicht.Date.Day].ToString()}, {SelectedSchicht.Date.Day.ToString("00")}.{SelectedSchicht.Date.Month.ToString("00")}.{SelectedSchicht.Date.Year}";
                                 schichtLabel.StartZeit.Text = SelectedSchicht.Zeiten.SchichtStartText;
                                 schichtLabel.SchlussZeit.Text = SelectedSchicht.Zeiten.SchichtSchlussText;
                                 if (SelectedSchicht.Zeiten.bPlusOneDay) schichtLabel.PlusDayText.Visibility = Visibility.Visible; else schichtLabel.PlusDayText.Visibility = Visibility.Collapsed;
