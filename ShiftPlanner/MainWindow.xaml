@@ -11,6 +11,17 @@
 
     <Window.Resources>
 
+        <!-- Theme colours -->
+        <SolidColorBrush x:Key="BackgroundBrush" Color="#17181B"/>
+        <SolidColorBrush x:Key="SurfaceBrush" Color="#222428"/>
+        <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#303238"/>
+        <SolidColorBrush x:Key="BorderBrush" Color="#454850"/>
+
+        <SolidColorBrush x:Key="TextBrush" Color="White"/>
+        <SolidColorBrush x:Key="MutedTextBrush" Color="#9B9CA3"/>
+
+        <SolidColorBrush x:Key="AccentBrush" Color="#4F8CFF"/>
+        <SolidColorBrush x:Key="AccentHoverBrush" Color="#6CA0FF"/>
         <local:DivideBySevenConverter x:Key="DivideBySevenConverter"/>
         <Style x:Key="TransparentButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
@@ -32,6 +43,87 @@
                 </Setter.Value>
             </Setter>
         </Style>
+
+        <!-- General modern button -->
+        <Style x:Key="ModernButton" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}"/>
+            <Setter Property="Background" Value="{StaticResource SurfaceBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BorderBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,7"/>
+            <Setter Property="Margin" Value="3"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="FontSize" Value="13"/>
+
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="ButtonBorder"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6">
+
+                            <ContentPresenter
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder"
+                                    Property="Background"
+                                    Value="{StaticResource SurfaceHoverBrush}"/>
+
+                                <Setter TargetName="ButtonBorder"
+                                    Property="BorderBrush"
+                                    Value="{StaticResource AccentBrush}"/>
+                            </Trigger>
+
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder"
+                                    Property="Opacity"
+                                    Value="0.75"/>
+                            </Trigger>
+
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="ButtonBorder"
+                                    Property="Opacity"
+                                    Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="IconButton"
+       TargetType="Button"
+       BasedOn="{StaticResource ModernButton}">
+
+            <Setter Property="Width" Value="32"/>
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="FontSize" Value="15"/>
+        </Style>
+        <!-- Primary action button -->
+        <Style x:Key="AccentButton"
+           TargetType="Button"
+           BasedOn="{StaticResource ModernButton}">
+
+            <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource AccentBrush}"/>
+
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background"
+                        Value="{StaticResource AccentHoverBrush}"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+   
     </Window.Resources>
 
     <Grid>

@@ -4173,10 +4173,7 @@ namespace ShiftPlanner
                                                                        }
 
                                                                    }
-                                                                   else
-                                                                   {
-                                                                       SetString += "FW";
-                                                                   }
+                                                                
                                                                }
 
                                                                row.Cell().Element(x =>
