@@ -2624,7 +2624,7 @@ namespace ShiftPlanner
                 }
                 else break;
             }
-            MessageBox.Show($"Tage nach hinten: {concurrentDays}");
+   
             for (int u = 1; u < _ActiveEmployee.MaxArbeitsTageAmStueck+1; u++)
             {
                     if (_ActiveEmployee.TageImEinsatz.Contains(clickedDate.AddDays(u)))
@@ -2633,7 +2633,7 @@ namespace ShiftPlanner
                     }
                     else break;
             }
-            MessageBox.Show($"Tage nach vorne: {concurrentDays}");
+
             if (concurrentDays > _ActiveEmployee.MaxArbeitsTageAmStueck)
                 {
                     BestätigungsWidget window = new BestätigungsWidget();
