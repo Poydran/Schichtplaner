@@ -13,6 +13,7 @@ using System.Data;
 using System.Data.Common;
 using System.Globalization;
 using System.IO;
+using System.IO.Packaging;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.PortableExecutable;
@@ -281,6 +282,30 @@ namespace ShiftPlanner
             _ShowOutOfOfficeReason = !_ShowOutOfOfficeReason;
             UnsavedChanges = true;
         }
+        private void RecalcPlannedHours()
+        {
+            foreach (EmployeeData employeeData in _Mitartbeiter)
+            {
+
+                employeeData._VerplanteStunden = 0;
+                foreach (int ID in employeeData._ZugeteilteSchichten)
+                {
+                    if (GetSchicht(ID) is SchichtInfo SInfo && SInfo.Date.Month == _currentMonth.Month && SInfo.Date.Year == _currentMonth.Year)
+                    {
+                        if(!IsDayOff(employeeData.AbwesendListeNew,SInfo.Date.Day))
+                        {
+                            employeeData._VerplanteStunden += SInfo.Zeiten.SchichtStunden;
+                        }
+                        
+                    }
+                }
+
+                if (_MitarbeiterWidgetMap.TryGetValue(employeeData._MitarbeiterID, out Employee? OutEmployee))
+                {
+                    _MitarbeiterWidgetMap[employeeData._MitarbeiterID].SetHours(employeeData._VerplanteStunden, employeeData._ZielStunden);
+                }
+            }
+        }
         private void NeuberechneArbeitszeitNachPausen()
         {
             foreach (SchichtInfo SI in _Schichten)
@@ -304,23 +329,7 @@ namespace ShiftPlanner
                     SI.Zeiten.PausenZeit = PausenZeit;
                 }
 
-            foreach(EmployeeData MA in _Mitartbeiter)
-            {
-                MA._VerplanteStunden = 0.0f;
-                foreach (int SchichtID in MA._ZugeteilteSchichten)
-                {
-                    if (GetSchicht(SchichtID) is SchichtInfo SInfo)
-                    {
-                        MA._VerplanteStunden += SInfo.Zeiten.SchichtStunden;
-                    }
-                }
-                MA._VerplanteStunden = Math.Round(MA._VerplanteStunden, 2);
-                _MitarbeiterWidgetMap.TryGetValue(MA._MitarbeiterID, out Employee? OutEmployee);
-                if (OutEmployee != null)
-                {
-                    OutEmployee.SetHours(MA._VerplanteStunden, MA._ZielStunden);
-                }
-            }
+            RecalcPlannedHours();
         }
         private void UpdateUI()
         {
@@ -801,15 +810,261 @@ namespace ShiftPlanner
         {
             _currentMonth = _currentMonth.AddMonths(-1);
             MonthTitleText.Text = _MonthMapping[_currentMonth.Month] + " " + _currentMonth.Year.ToString();
+            foreach (EmployeeData Arbeitstier in _Mitartbeiter)
+            {
+                Arbeitstier.AbwesendDaten.TryGetValue(_currentMonth, out List<TagesWunsch>? OutDayList);
+                if (OutDayList != null)
+                {
 
+                    Arbeitstier.AbwesendListeNew = new List<TagesWunsch>(OutDayList);
+                    Arbeitstier.AbwesendString = BuildNewDayString(Arbeitstier.AbwesendListeNew);
+
+                }
+                else
+                {
+                        Arbeitstier.AbwesendListeNew.Clear();
+                        Arbeitstier.AbwesendString = "";
+                    
+                }
+
+                Arbeitstier.EinsatzDaten.TryGetValue(_currentMonth, out List<TagesWunsch>? OutFWDayList);
+                if (OutFWDayList != null)
+                {
+                  
+
+                        Arbeitstier.Einsatzwuensche = new List<TagesWunsch>(OutFWDayList);
+                    Arbeitstier.EinsatzwunschString = BuildNewDayString( Arbeitstier.Einsatzwuensche);
+
+
+                }
+                else
+                {
+                  
+                        Arbeitstier.Einsatzwuensche.Clear();
+                        Arbeitstier.EinsatzwunschString = "";
+                    
+                }
+
+                Arbeitstier.FreitagsDaten.TryGetValue(_currentMonth, out List<TagesWunsch>? OutEWDayList);
+                if (OutEWDayList != null)
+                {
+                 
+                        Arbeitstier.FreitagsWuensche = new List<TagesWunsch>(OutEWDayList);
+                    Arbeitstier.FreitagWunschString=  BuildNewDayString( Arbeitstier.FreitagsWuensche);
+
+                }
+                else
+                {
+                  
+                        Arbeitstier.FreitagsWuensche.Clear();
+                        Arbeitstier.FreitagWunschString = "";
+                    
+                }
+
+
+            }
             if (_ActiveStandortID >= 0) SwitchGenerator();
             RecalcPlannedHours();
+        }
+
+        private static string BuildNewDayString( List<TagesWunsch> DayListToGet)
+        {
+            string DayStrings = "mo,di,mi,do,fr,sa,so";
+            string InStringToBuild = "";
+            bool AddDescription = false;
+            int StartDay = 0;
+            for (int i = 0; i < DayListToGet.Count(); i++)
+            {
+                TagesWunsch TW = DayListToGet[i];
+                if (DayStrings.Contains(TW.Tag.ToLower()))
+                {
+                    InStringToBuild += $" {TW.Tag}";
+                    AddDescription = true;
+                }
+                else
+                {
+
+                    if (StartDay == 0)
+                    {
+                        int Start = int.Parse(TW.Tag.Trim());
+
+                        if (i + 1 < DayListToGet.Count())
+                        {
+                            TagesWunsch NTW = DayListToGet[i + 1];
+                            int end = int.Parse(NTW.Tag.Trim());
+
+                            if (Start + 1 == end)
+                            {
+                                StartDay = Start;
+                            }
+                            else
+                            {
+                                InStringToBuild += $" {TW.Tag}";
+                                AddDescription = true;
+                            }
+
+                        }
+                        else
+                        {
+                            InStringToBuild += $" {TW.Tag}";
+                            AddDescription = true;
+                        }
+
+
+                    }
+                    else
+                    {
+                        int Followday = int.Parse(TW.Tag.Trim());
+
+                        if (i + 1 < DayListToGet.Count())
+                        {
+                            TagesWunsch NTW = DayListToGet[i + 1];
+                            int end = int.Parse(NTW.Tag.Trim());
+
+                            if (Followday + 1 == end)
+                            {
+                                continue;
+                            }
+                            else
+                            {
+                                InStringToBuild += $" {StartDay.ToString()}-{TW.Tag}";
+                                AddDescription = true;
+                            }
+
+                        }
+                        else
+                        {
+                            InStringToBuild += $" {StartDay.ToString()}-{TW.Tag}";
+                            AddDescription = true;
+                        }
+
+
+                    }
+                }
+
+
+                if (AddDescription)
+                {
+                    if (!string.IsNullOrEmpty(TW.Typ))
+                    {
+
+                        InStringToBuild += $"({TW.Typ}";
+                        if (!string.IsNullOrEmpty(TW.TypAbbreviation))
+                        {
+                            InStringToBuild += $"[{TW.TypAbbreviation}]";
+                        }
+
+                        InStringToBuild += ")";
+
+                    }
+
+                    InStringToBuild += ",";
+                    StartDay = 0;
+                    AddDescription = false;
+                }
+
+            }
+            char Komma = ',';
+            InStringToBuild = InStringToBuild.Trim(Komma);
+            return InStringToBuild;
         }
 
         private void NextMonth_Click(object sender, RoutedEventArgs e)
         {
             _currentMonth = _currentMonth.AddMonths(1);
             MonthTitleText.Text = _MonthMapping[_currentMonth.Month] + " " + _currentMonth.Year.ToString();
+
+
+            foreach (EmployeeData Arbeitstier in _Mitartbeiter)
+            {
+                Arbeitstier.AbwesendDaten.TryGetValue(_currentMonth, out List<TagesWunsch>? OutDayList);
+                if (OutDayList != null)
+                {
+                    if(Arbeitstier.TransferAbwesenheitOverMonths && OutDayList.Count == 0)
+                    {
+                        Arbeitstier.AbwesendDaten[_currentMonth] = new List<TagesWunsch>(Arbeitstier.AbwesendListeNew);
+                    }
+                    else
+                    {
+                        Arbeitstier.AbwesendListeNew = new List<TagesWunsch>(OutDayList);
+                        Arbeitstier.AbwesendString = BuildNewDayString(Arbeitstier.AbwesendListeNew);
+                    }
+                }
+                else
+                {
+                    if (Arbeitstier.TransferAbwesenheitOverMonths)
+                    {
+
+                        Arbeitstier.AbwesendDaten.Add(_currentMonth, new List<TagesWunsch>(Arbeitstier.AbwesendListeNew));
+
+                    }
+                    else
+                    {
+                        Arbeitstier.AbwesendListeNew.Clear();
+                        Arbeitstier.AbwesendString = "";
+                    }
+                }
+
+                Arbeitstier.EinsatzDaten.TryGetValue(_currentMonth, out List<TagesWunsch>? OutFWDayList);
+                if (OutFWDayList != null)
+                {
+                    if (Arbeitstier.TransferEinsatzwuenscheOverMonths && OutFWDayList.Count == 0)
+                    {
+                        Arbeitstier.EinsatzDaten[_currentMonth] = new List<TagesWunsch>(Arbeitstier.Einsatzwuensche);
+                    }
+                    else
+                    {
+                      
+                        Arbeitstier.Einsatzwuensche = new List<TagesWunsch>(OutFWDayList);
+                        Arbeitstier.EinsatzwunschString = BuildNewDayString( Arbeitstier.Einsatzwuensche);
+
+                    }
+                }
+                else
+                { 
+                    if (Arbeitstier.TransferEinsatzwuenscheOverMonths)
+                    {
+
+                        Arbeitstier.EinsatzDaten.Add(_currentMonth, new List<TagesWunsch>(Arbeitstier.Einsatzwuensche));
+                    }
+                    else
+                    {
+                        Arbeitstier.Einsatzwuensche.Clear();
+                        Arbeitstier.EinsatzwunschString = "";
+                    }
+                }
+
+                Arbeitstier.FreitagsDaten.TryGetValue(_currentMonth, out List<TagesWunsch>? OutEWDayList);
+                if (OutEWDayList != null)
+                {
+                    if (Arbeitstier.TransferFreitagWunschOverMonths && OutEWDayList.Count == 0)
+                    {
+                        Arbeitstier.FreitagsDaten[_currentMonth] = new List<TagesWunsch>(Arbeitstier.FreitagsWuensche);
+                    }
+                    else
+                    {
+                        Arbeitstier.FreitagsWuensche = new List<TagesWunsch>(OutEWDayList);
+                        Arbeitstier.FreitagWunschString = BuildNewDayString( Arbeitstier.FreitagsWuensche);
+                    }
+                }
+                else
+                {
+                    if (Arbeitstier.TransferFreitagWunschOverMonths)
+                    {
+
+                        Arbeitstier.FreitagsDaten.Add(_currentMonth, new List<TagesWunsch>(Arbeitstier.FreitagsWuensche));
+
+                    }
+                    else
+                    {
+                        Arbeitstier.FreitagsWuensche.Clear();
+                        Arbeitstier.FreitagWunschString = "";
+                    }
+                }
+   
+
+            }
+
             if (_ActiveStandortID >= 0) SwitchGenerator();
             RecalcPlannedHours();
         }
@@ -1460,6 +1715,9 @@ namespace ShiftPlanner
                 _MitarbeiterInfoCache.EinsatzTage.Text = Arbeiter.EinsatzwunschString;
                 _MitarbeiterInfoCache.TageAmStueck.Text = Arbeiter.MaxArbeitsTageAmStueck.ToString();
                 _MitarbeiterInfoCache.TageAmStueckBox.Text = Arbeiter.MaxArbeitsTageAmStueck.ToString();
+                _MitarbeiterInfoCache.CarryOverAbwesenheiten.IsChecked = Arbeiter.TransferAbwesenheitOverMonths;
+                _MitarbeiterInfoCache.CarryOverEinsaetze.IsChecked = Arbeiter.TransferEinsatzwuenscheOverMonths;
+                _MitarbeiterInfoCache.CarryOverFreizeit.IsChecked = Arbeiter.TransferFreitagWunschOverMonths;
                 string STText = "";
                 int Index = 0;
                 foreach (PlanStandortData Ort in _Standorte)
@@ -1620,13 +1878,67 @@ namespace ShiftPlanner
                     _MitarbeiterWidgetMap[Arbeiter._MitarbeiterID].RootBorder.BorderBrush = new SolidColorBrush(color);
                 }
 
+
+                Arbeiter.TransferAbwesenheitOverMonths = InChanges.TransferAbwesenheitOverMonths;
+                Arbeiter.TransferEinsatzwuenscheOverMonths = InChanges.TransferEinsatzwuenscheOverMonths;
+                Arbeiter.TransferFreitagWunschOverMonths = InChanges.TransferFreitagWunschOverMonths;
+
                 Arbeiter.AbwesendString = InChanges.AbwesendString;
                 Arbeiter.EinsatzwunschString = InChanges.EinsatzwunschString;
                 Arbeiter.FreitagWunschString = InChanges.FreitagWunschString;
                 Arbeiter.AbwesendListeNew = InChanges.AbwesendListe;
                 Arbeiter.Einsatzwuensche = InChanges.Einsatzwuensche;
                 Arbeiter.FreitagsWuensche = InChanges.FreitagsWuensche;
+                Arbeiter.AbwesendDaten.TryGetValue(_currentMonth, out List<TagesWunsch>? OutDayList);
+                if (OutDayList != null)
+                {
+
+                    Arbeiter.AbwesendDaten[_currentMonth] = new List<TagesWunsch>(InChanges.AbwesendListe);
+                }
+                else
+                {
+                    Arbeiter.AbwesendDaten.Add(_currentMonth, new List<TagesWunsch>(InChanges.AbwesendListe));
+                }
+                Arbeiter.FreitagsDaten.TryGetValue(_currentMonth, out List<TagesWunsch>? OutFWDayList);
+                if (OutFWDayList != null)
+                {
+
+                    Arbeiter.FreitagsDaten[_currentMonth] = new List<TagesWunsch>(InChanges.FreitagsWuensche);
+                }
+                else
+                {
+                    Arbeiter.FreitagsDaten.Add(_currentMonth, new List<TagesWunsch>(InChanges.FreitagsWuensche));
+                }
+                Arbeiter.EinsatzDaten.TryGetValue(_currentMonth, out List<TagesWunsch>? OutEWDayList);
+                if (OutEWDayList != null)
+                {
+
+                    Arbeiter.EinsatzDaten[_currentMonth] = new List<TagesWunsch>(InChanges.Einsatzwuensche);
+                }
+                else
+                {
+                    Arbeiter.EinsatzDaten.Add(_currentMonth, new List<TagesWunsch>(InChanges.Einsatzwuensche));
+                }
+
                 Arbeiter.MaxArbeitsTageAmStueck = InChanges.FolgeTage;
+
+
+                List<int> SchichtIDsToRemove = new();
+
+
+                foreach (int ID in Arbeiter._ZugeteilteSchichten)
+                {
+                    if (GetSchicht(ID) is SchichtInfo SInfo && SInfo.Date.Month == _currentMonth.Month && SInfo.Date.Year == _currentMonth.Year)
+                    {
+                        if (IsDayOff(Arbeiter.AbwesendListeNew, SInfo.Date.Day))
+                        {
+                            SchichtIDsToRemove.Add(ID);
+                        }
+
+                    }
+                }
+
+                ClearSelectedShiftsFromEmployee(SchichtIDsToRemove, InChanges.MAToChange);
 
                 if (_ActiveEmployee != null && Arbeiter._MitarbeiterID == _ActiveEmployee._MitarbeiterID)
                 {
@@ -1650,26 +1962,7 @@ namespace ShiftPlanner
             }
             _MitarbeiterInfoCache.SchichtAls.Text = NewText;
         }
-        private void RecalcPlannedHours()
-        {
-            foreach (EmployeeData employeeData in _Mitartbeiter)
-            {
-
-                employeeData._VerplanteStunden = 0;
-                foreach (int ID in employeeData._ZugeteilteSchichten)
-                {
-                    if (GetSchicht(ID) is SchichtInfo SInfo && SInfo.Date.Month == _currentMonth.Month && SInfo.Date.Year == _currentMonth.Year)
-                    {
-                        employeeData._VerplanteStunden += SInfo.Zeiten.SchichtStunden;
-                    }
-                }
-
-                if (_MitarbeiterWidgetMap.TryGetValue(employeeData._MitarbeiterID, out Employee? OutEmployee))
-                {
-                    _MitarbeiterWidgetMap[employeeData._MitarbeiterID].SetHours(employeeData._VerplanteStunden, employeeData._ZielStunden);
-                }
-            }
-        }
+   
         public EmployeeData? GetMitarbeiter(int InMAID)
         {
 
@@ -2327,20 +2620,21 @@ namespace ShiftPlanner
             {
                 if (_ActiveEmployee.TageImEinsatz.Contains(clickedDate.AddDays(-i)))
                 {
-                    concurrentDays++;
+                    ++concurrentDays;
                 }
                 else break;
             }
+            MessageBox.Show($"Tage nach hinten: {concurrentDays}");
             for (int u = 1; u < _ActiveEmployee.MaxArbeitsTageAmStueck+1; u++)
             {
                     if (_ActiveEmployee.TageImEinsatz.Contains(clickedDate.AddDays(u)))
                     {
-                        concurrentDays++;
+                        ++concurrentDays;
                     }
                     else break;
             }
-             
-                if (concurrentDays > _ActiveEmployee.MaxArbeitsTageAmStueck)
+            MessageBox.Show($"Tage nach vorne: {concurrentDays}");
+            if (concurrentDays > _ActiveEmployee.MaxArbeitsTageAmStueck)
                 {
                     BestätigungsWidget window = new BestätigungsWidget();
                     window.Owner = this;
@@ -2436,7 +2730,7 @@ namespace ShiftPlanner
             {
                 if (_ActiveEmployee.TageImEinsatz.Contains(clickedDate.AddDays(-i)))
                 {
-                    concurrentDays++;
+                    ++concurrentDays;
                 }
                 else break;
             }
@@ -2444,7 +2738,7 @@ namespace ShiftPlanner
             {
                 if (_ActiveEmployee.TageImEinsatz.Contains(clickedDate.AddDays(u)))
                 {
-                    concurrentDays++;
+                    ++concurrentDays;
                 }
                 else break;
             }
@@ -2817,6 +3111,8 @@ namespace ShiftPlanner
                                 _Schichten.Remove(SelectedSchicht);
                                 SwitchGenerator();
                             }
+
+                            Arbeiter.TageImEinsatz.Remove(SelectedSchicht.Date);
                             UnsavedChanges = true;
                         }
                         schichtEditor.SaveSchichtInfo -= SaveNewSchichtInfo;
@@ -2912,7 +3208,6 @@ namespace ShiftPlanner
                         }
                         _MitarbeiterInfoCache.PlannedStundenText.Text = $"Verplante Stunden:  {Arbeiter._VerplanteStunden.ToString()}";
                         Arbeiter._ZugeteilteSchichten.Remove(_InSchichtID);
-                        Arbeiter.TageImEinsatz.Remove(SelectedSchicht.Date);
                         return true;
                     }
                 }
@@ -3113,13 +3408,33 @@ namespace ShiftPlanner
 
                     employeWidget.SetMitarbeiterName(Arbeiter._MitarbeiterName);
                     employeWidget.SetRolls(Arbeiter._VorgeseheneRollen);
-                    employeWidget.SetHours(Arbeiter._VerplanteStunden, Arbeiter._ZielStunden);
                     employeWidget._LinkedMitarbeiterID = Arbeiter._MitarbeiterID;
                     employeWidget.Clicked += SetEmployeeActive;
                     employeWidget.RightClicked += OpenMAInfo;
                     System.Windows.Media.Color color = (System.Windows.Media.Color)ColorConverter.ConvertFromString(Arbeiter.ColorHex);
                     employeWidget.RootBorder.BorderBrush = new SolidColorBrush(color);
                     _MitarbeiterWidgetMap.Add(Arbeiter._MitarbeiterID, employeWidget);
+
+
+
+                    //Compatability Load for 1.0.2 and before
+                    Arbeiter.AbwesendDaten.TryGetValue(_currentMonth, out List<TagesWunsch>? OutDayList);
+                    if (OutDayList == null)
+                    {
+                        Arbeiter.AbwesendDaten.Add(_currentMonth, new List<TagesWunsch>(Arbeiter.AbwesendListeNew));
+                    }
+                    Arbeiter.FreitagsDaten.TryGetValue(_currentMonth, out List<TagesWunsch>? OutFWDayList);
+                    if (OutFWDayList == null)
+                    {
+                        Arbeiter.FreitagsDaten.Add(_currentMonth, new List<TagesWunsch>(Arbeiter.FreitagsWuensche));
+                    }
+                    Arbeiter.EinsatzDaten.TryGetValue(_currentMonth, out List<TagesWunsch>? OutEWDayList);
+                    if (OutEWDayList == null)
+                    {
+                        Arbeiter.EinsatzDaten.Add(_currentMonth, new List<TagesWunsch>(Arbeiter.Einsatzwuensche));
+                    }
+
+
                 }
                 SortierMitarbeiter(Sortierungen);
 
@@ -3134,12 +3449,13 @@ namespace ShiftPlanner
                 Kuerzelsettings.IsChecked = saveData.SD_UseRollenKuerzel;
                 KuerzelsettingsST.IsChecked = saveData.SD_UseStandortKuerzel;
                 VerwendePausenzeiten.IsChecked = saveData.SD_UsegesPause;
-                VerwendePausenzeiten.IsChecked = saveData.SD_ShowAbwesenheit;
+                ZeigeAbwesenheitsGrund.IsChecked = saveData.SD_ShowAbwesenheit;
                 FarbExport.IsChecked = saveData.SD_UsePDFColor;
                 _ExportSizePDFST = saveData.SD_FontSize;
                 ExportFont.Header = $"Aktuelle Größe: {_ExportSizePDFST}";
                 _ExportSizePDFPersonal = saveData.SD_FontSizeMA;
                 ExportFontMA.Header = $"Aktuelle Größe: {_ExportSizePDFPersonal}";
+                RecalcPlannedHours();
                 UnsavedChanges = false;
             }
         }

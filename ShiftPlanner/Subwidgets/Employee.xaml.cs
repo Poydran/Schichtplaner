@@ -110,13 +110,20 @@ namespace ShiftPlanner.Subwidgets
 
         public string AbwesendString { get; set; } = "";
         public List<TagesWunsch> AbwesendListeNew { get; set; } = new();
+        public Dictionary<DateTime, List<TagesWunsch>> AbwesendDaten { get; set; } = new();
         public string EinsatzwunschString { get; set; } = "";
         public List<TagesWunsch> Einsatzwuensche { get; set; } = new();
+        public Dictionary<DateTime, List<TagesWunsch>> EinsatzDaten { get; set; } = new();
         public string FreitagWunschString { get; set; } = "";
         public List<TagesWunsch> FreitagsWuensche { get; set; } = new();
+        public Dictionary<DateTime, List<TagesWunsch>> FreitagsDaten { get; set; } = new();
 
         public List<DateTime> TageImEinsatz = new();
         public int MaxArbeitsTageAmStueck { get; set; } = 5;
+
+        public bool TransferFreitagWunschOverMonths { get; set; } = false;
+        public bool TransferAbwesenheitOverMonths { get; set; } = false;
+        public bool TransferEinsatzwuenscheOverMonths { get; set; } = false;
 
         public void SetzeNeuenNamen(String InName)
         {

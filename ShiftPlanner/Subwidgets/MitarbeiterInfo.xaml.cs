@@ -171,7 +171,12 @@ namespace ShiftPlanner.Subwidgets
             NewSave.EinsatzwunschString = EinsatzBox.Text;
             if (!FilterTagesBoxen(NewSave.FreitagsWuensche,  FreizeitBox.Text)) return;
             FreizeitTage.Text = FreizeitBox.Text;
-            NewSave.FreitagWunschString = FreizeitBox.Text; 
+            NewSave.FreitagWunschString = FreizeitBox.Text;
+
+
+            NewSave.TransferAbwesenheitOverMonths = CarryOverAbwesenheiten.IsChecked != null && CarryOverAbwesenheiten.IsChecked == true ? true : false; ;
+            NewSave.TransferEinsatzwuenscheOverMonths = CarryOverEinsaetze.IsChecked != null && CarryOverEinsaetze.IsChecked == true ? true : false;
+            NewSave.TransferFreitagWunschOverMonths = CarryOverFreizeit.IsChecked != null && CarryOverFreizeit.IsChecked == true ? true : false;
 
             SaveMAChanges?.Invoke(NewSave);
 
@@ -200,6 +205,10 @@ namespace ShiftPlanner.Subwidgets
             AbwesenheitsTooltip.Visibility = Visibility.Collapsed;
             DeleteShifts.Visibility = Visibility.Collapsed;
             ExportMAPDF.Visibility = Visibility.Visible;
+
+            CarryOverAbwesenheiten.IsHitTestVisible = false;
+            CarryOverEinsaetze.IsHitTestVisible = false;
+            CarryOverFreizeit.IsHitTestVisible = false;
 
             MyColorPicker.IsEnabled = false;
 
@@ -364,6 +373,10 @@ namespace ShiftPlanner.Subwidgets
             DeleteShifts.Visibility = Visibility.Visible;
             ExportMAPDF.Visibility = Visibility.Collapsed;
 
+            CarryOverAbwesenheiten.IsHitTestVisible = true;
+            CarryOverEinsaetze.IsHitTestVisible = true;
+            CarryOverFreizeit.IsHitTestVisible = true;
+
             AbwesenheitsTooltip.Visibility = Visibility.Visible;
 
             MyColorPicker.IsEnabled = true;
@@ -402,6 +415,12 @@ namespace ShiftPlanner.Subwidgets
         public List<TagesWunsch> FreitagsWuensche { get; set; } = new();
 
         public int FolgeTage { get; set; }
+
+
+
+        public bool TransferFreitagWunschOverMonths { get; set; } = false;
+        public bool TransferAbwesenheitOverMonths { get; set; } = false;
+        public bool TransferEinsatzwuenscheOverMonths { get; set; } = false;
     }
 
     public class TagesWunsch
