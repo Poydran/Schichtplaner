@@ -401,6 +401,7 @@
                       FontSize="16"
                       HorizontalAlignment="Center"
                       IsHitTestVisible="False"
+                        ToolTip="Auswählen um eingefügte Werte in Folgemonate zu übernehmen."
                       />
 
                     <Border Width="18" Grid.Column="3" x:Name="AbwesenheitsTooltip"

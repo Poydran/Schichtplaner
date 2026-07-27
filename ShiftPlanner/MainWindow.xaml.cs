@@ -4426,9 +4426,9 @@ namespace ShiftPlanner
 
                                                                    if (!string.IsNullOrWhiteSpace(CommonShift.Notiz))
                                                                    {
-                                                                       if (CommonShift.Notiz.Length < 4)
+                                                                       if (CommonShift.Notiz.Length <= 4)
                                                                        {
-                                                                           RString += $"({CommonShift.Notiz})";
+                                                                           RString += Environment.NewLine + $"({CommonShift.Notiz})";
                                                                        }
                                                                    }
 
